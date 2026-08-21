@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vanbransa Lounge — Online Menu</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root{--bg:#0a0705;--surface:#1a1008;--card:#231408;--border:rgba(180,120,60,0.2);--gold:#e8a535;--amber:#c8832a;--brown:#a0621a;--text:#f5ece0;--text2:#a08060;--green:#7daa5a;}
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;}
+    .hero{background:linear-gradient(135deg,#1a0c04,#2d1506,#1a0c04);border-bottom:1px solid var(--border);padding:32px 20px 24px;text-align:center;position:relative;overflow:hidden;}
+    .hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,rgba(200,130,42,0.15),transparent 70%);}
+    .hero-logo{width:64px;height:64px;background:linear-gradient(135deg,var(--gold),var(--amber));border-radius:18px;display:flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-size:28px;font-weight:900;color:#1a0c04;margin:0 auto 14px;box-shadow:0 0 40px rgba(232,165,53,0.4);position:relative;z-index:1;}
+    .hero h1{font-family:'Outfit',sans-serif;font-size:28px;font-weight:900;color:#fff;position:relative;z-index:1;}
+    .hero p{color:var(--text2);font-size:14px;margin-top:6px;position:relative;z-index:1;}
+    .hero-badge{display:inline-block;background:rgba(232,165,53,0.15);border:1px solid rgba(232,165,53,0.3);color:var(--gold);padding:4px 14px;border-radius:20px;font-size:12px;font-weight:600;margin-top:10px;position:relative;z-index:1;}
+    .cat-bar{display:flex;gap:8px;overflow-x:auto;padding:16px 16px 0;scrollbar-width:none;}
+    .cat-bar::-webkit-scrollbar{display:none;}
+    .cat-chip{flex-shrink:0;background:var(--surface);border:1px solid var(--border);color:var(--text2);padding:8px 16px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;white-space:nowrap;}
+    .cat-chip.active,.cat-chip:hover{background:var(--amber);border-color:var(--amber);color:#1a0c04;}
+    .menu-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px;padding:16px;}
+    .menu-card{background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;transition:all .25s;}
+    .menu-card:hover{border-color:var(--amber);transform:translateY(-2px);box-shadow:0 8px 32px rgba(200,130,42,0.2);}
+    .menu-card img,.no-img{width:100%;height:180px;object-fit:cover;display:block;}
+    .no-img{background:linear-gradient(135deg,#2d1a08,#1a0c04);display:flex;align-items:center;justify-content:center;font-size:48px;}
+    .card-body{padding:14px 16px;}
+    .card-cat{font-size:11px;color:var(--gold);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+    .card-name{font-family:'Outfit',sans-serif;font-size:17px;font-weight:700;color:#fff;margin-bottom:6px;}
+    .card-price{font-size:18px;font-weight:700;color:var(--gold);}
+    .card-uom{font-size:12px;color:var(--text2);margin-left:4px;}
+    .card-add-btn{margin-top:12px;width:100%;background:linear-gradient(135deg,var(--amber),var(--brown));color:#fff;border:none;padding:10px;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;transition:all .2s;}
+    .cart-bar{position:fixed;bottom:0;left:0;right:0;background:linear-gradient(90deg,#2d1506,#1a0c04);border-top:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;z-index:100;transform:translateY(100%);transition:transform .3s ease;}
+    .cart-bar.visible{transform:translateY(0);}
+    .cart-info span{font-size:14px;color:var(--text2);}
+    .cart-info strong{font-size:18px;color:var(--gold);display:block;font-family:'Outfit',sans-serif;}
+    .cart-btn{background:linear-gradient(135deg,var(--gold),var(--amber));color:#1a0c04;border:none;padding:12px 24px;border-radius:12px;font-weight:800;font-size:15px;cursor:pointer;}
+    .cart-modal{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.7);align-items:flex-end;}
+    .cart-modal.open{display:flex;}
+    .cart-sheet{background:var(--surface);border-top-left-radius:24px;border-top-right-radius:24px;width:100%;max-height:80vh;overflow-y:auto;border:1px solid var(--border);border-bottom:none;padding:24px;}
+    .cart-sheet h2{font-family:'Outfit',sans-serif;font-size:20px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;}
+    .cart-item{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--border);}
+    .cart-item-name{flex:1;font-weight:600;font-size:14px;}
+    .qty-ctrl{display:flex;align-items:center;gap:8px;}
+    .qty-ctrl button{background:rgba(200,130,42,.15);border:1px solid var(--border);color:var(--gold);width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:16px;font-weight:700;}
+    .qty-ctrl span{font-weight:700;min-width:20px;text-align:center;}
+    .cart-item-price{font-weight:700;color:var(--gold);min-width:70px;text-align:right;}
+    .fi{width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--text);padding:12px 14px;border-radius:10px;font-size:14px;outline:none;}
+    .fi.nm{margin:16px 0 8px;}
+    .fi.nt{margin-bottom:16px;min-height:70px;resize:vertical;}
+    .place-order-btn{width:100%;background:linear-gradient(135deg,var(--gold),var(--amber));color:#1a0c04;border:none;padding:14px;border-radius:12px;font-weight:800;font-size:16px;cursor:pointer;}
+    .close-cart{background:none;border:none;color:var(--text2);font-size:24px;cursor:pointer;}
+    .success-modal{display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.8);align-items:center;justify-content:center;}
+    .success-modal.open{display:flex;}
+    .success-box{background:var(--surface);border-radius:20px;padding:40px;text-align:center;max-width:360px;width:90%;border:1px solid rgba(125,170,90,.3);}
+    .success-icon{font-size:56px;margin-bottom:16px;}
+    .success-box h2{font-family:'Outfit',sans-serif;font-size:22px;color:var(--green);margin-bottom:8px;}
+    .success-ref{font-size:18px;font-weight:700;color:var(--gold);margin:12px 0;}
+    @media(max-width:480px){.menu-grid{grid-template-columns:1fr;}.hero h1{font-size:22px;}}
+  </style>
+</head>
+<body>
+  <div class="hero">
+    <div class="hero-logo">T</div>
+    <h1>Vanbransa Lounge</h1>
+    <p>Browse our menu and place your order</p>
+    <span class="hero-badge">Kitchen Open</span>
+  </div>
+  <div class="cat-bar" id="cat-bar"><div class="cat-chip active" data-cat="all">All Items</div></div>
+  <div class="menu-grid" id="menu-grid"><div style="text-align:center;padding:60px;color:#a08060;grid-column:1/-1;">Loading menu...</div></div>
+  <div style="height:80px;"></div>
+  <div class="cart-bar" id="cart-bar">
+    <div class="cart-info"><span id="cart-count-txt">0 items</span><strong id="cart-total-txt">KES 0.00</strong></div>
+    <button class="cart-btn" onclick="openCart()">View Order</button>
+  </div>
+  <div class="cart-modal" id="cart-modal">
+    <div class="cart-sheet">
+      <h2>Your Order <button class="close-cart" onclick="closeCart()">x</button></h2>
+      <div id="cart-items-list"></div>
+      <input class="fi nm" id="order-name" type="text" placeholder="Your name / table number" />
+      <textarea class="fi nt" id="order-note" placeholder="Special instructions? (optional)"></textarea>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <span style="color:var(--text2);font-size:14px;">Total</span>
+        <span id="cart-modal-total" style="font-size:20px;font-weight:800;color:var(--gold);font-family:'Outfit',sans-serif;">KES 0.00</span>
+      </div>
+      <button class="place-order-btn" onclick="placeOrder()">Place Order</button>
+    </div>
+  </div>
+  <div class="success-modal" id="success-modal">
+    <div class="success-box">
+      <div class="success-icon">&#127881;</div>
+      <h2>Order Placed!</h2>
+      <p>Your order has been received. We will start preparing it right away.</p>
+      <div class="success-ref" id="order-ref">#TLN-0000</div>
+      <p style="font-size:12px;color:var(--text2);margin-top:8px;">Show this reference to your waiter</p>
+      <button onclick="document.getElementById('success-modal').classList.remove('open')" style="margin-top:20px;background:var(--amber);color:#fff;border:none;padding:10px 24px;border-radius:10px;font-weight:700;cursor:pointer;">Back to Menu</button>
+    </div>
+  </div>
+  <script>
+    var cart=[],products=[],categories={};
+    var EMOJI={'chicken':'&#127831;','chips':'&#127fried;','fish':'&#128olean;','nyama':'&#129969;','pilau':'&#127834;','rice':'&#127834;','ugali':'&#129981;','samosa':'&#129695;','beer':'&#127866;','juice':'&#129411;','soda':'&#129408;','cola':'&#129408;','water':'&#128167;','whiskey':'&#129347;'};
+    function gE(n){var l=n.toLowerCase();if(l.includes('chicken'))return'&#127831;';if(l.includes('fish')||l.includes('tilapia'))return'&#128olean;';if(l.includes('nyama')||l.includes('goat')||l.includes('pork'))return'&#129969;';if(l.includes('pilau')||l.includes('rice'))return'&#127834;';if(l.includes('ugali')||l.includes('sukuma'))return'&#129981;';if(l.includes('samosa'))return'&#129695;';if(l.includes('beer')||l.includes('tusker')||l.includes('guinness'))return'&#127866;';if(l.includes('juice'))return'&#129411;';if(l.includes('soda')||l.includes('cola')||l.includes('fanta'))return'&#129408;';if(l.includes('water'))return'&#128167;';if(l.includes('whiskey')||l.includes('wine')||l.includes('spirit'))return'&#127774;';if(l.includes('chips')||l.includes('fries'))return'&#127fried;';return'&#127859;';}
+    function loadMenu(){try{var req=indexedDB.open('POS_DB');req.onsuccess=function(e){var db=e.target.result;var stores=Array.from(db.objectStoreNames);if(!stores.includes('products')){renderFallback();return;}var tx=db.transaction(['products','categories'],'readonly');var cats={};tx.objectStore('categories').getAll().onsuccess=function(ce){ce.target.result.forEach(function(c){cats[c.id]=c.name;});categories=cats;};tx.objectStore('products').getAll().onsuccess=function(pe){products=pe.target.result.filter(function(p){return p.is_active!==0;});renderCategories();renderGrid('all');};};req.onerror=renderFallback;}catch(e){renderFallback();}}
+    function renderFallback(){products=[{id:1,name:'Grilled Chicken & Chips',sell_price:650,uom:'PLATE',category_id:1,image_data:'/ai_images/grilled_chicken.jpg'},{id:2,name:'Nyama Choma',sell_price:1200,uom:'KG',category_id:1,image_data:'/ai_images/nyama_choma.jpg'},{id:3,name:'Pilau Rice',sell_price:350,uom:'PLATE',category_id:1,image_data:'/ai_images/pilau_rice.jpg'},{id:4,name:'Coca-Cola 300ml',sell_price:100,uom:'BOTTLE',category_id:2,image_data:'/ai_images/coke_bottle.png'},{id:5,name:'Tusker Beer 500ml',sell_price:280,uom:'BOTTLE',category_id:3,image_data:'/ai_images/beer_glass.jpg'},{id:6,name:'Fresh Juice (glass)',sell_price:200,uom:'GLASS',category_id:2,image_data:'/ai_images/fresh_juice.jpg'}];categories={1:'Food & Meals',2:'Soft Drinks',3:'Beers & Ciders'};renderCategories();renderGrid('all');}
+    function renderCategories(){var bar=document.getElementById('cat-bar');var used=[...new Set(products.map(function(p){return p.category_id;}))];used.forEach(function(cid){var chip=document.createElement('div');chip.className='cat-chip';chip.dataset.cat=cid;chip.textContent=categories[cid]||'General';chip.onclick=function(){document.querySelectorAll('.cat-chip').forEach(function(c){c.classList.remove('active');});chip.classList.add('active');renderGrid(cid);};bar.appendChild(chip);});bar.querySelector('[data-cat=all]').onclick=function(){document.querySelectorAll('.cat-chip').forEach(function(c){c.classList.remove('active');});bar.querySelector('[data-cat=all]').classList.add('active');renderGrid('all');};}
+    function renderGrid(cf){var grid=document.getElementById('menu-grid');var filtered=cf==='all'?products:products.filter(function(p){return String(p.category_id)===String(cf);});grid.innerHTML='';if(!filtered.length){grid.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:40px;color:#a08060;">No items.</div>';return;}filtered.forEach(function(p){var card=document.createElement('div');card.className='menu-card';var imgHtml=p.image_data?'<img src="'+p.image_data+'?v=2" alt="'+p.name+'" />'+'':'<div class="no-img">&#127859;</div>';card.innerHTML=imgHtml+'<div class="card-body"><div class="card-cat">'+(categories[p.category_id]||'General')+'</div><div class="card-name">'+p.name+'</div><div><span class="card-price">KES '+p.sell_price.toFixed(2)+'</span><span class="card-uom">/ '+p.uom+'</span></div><button class="card-add-btn" data-pid="'+p.id+'">+ Add to Order</button></div>';card.querySelector('[data-pid]').onclick=function(ev){addToCart(p.id,ev.target);};grid.appendChild(card);});}
+    function addToCart(pid,btn){var prod=products.find(function(p){return p.id===pid;});if(!prod)return;var ex=cart.find(function(c){return c.id===pid;});if(ex)ex.qty++;else cart.push({id:pid,name:prod.name,price:prod.sell_price,qty:1});updateCartBar();btn.textContent='Added!';btn.style.background='linear-gradient(135deg,#7daa5a,#5a8a40)';setTimeout(function(){btn.textContent='+ Add to Order';btn.style.background='';},1200);}
+    function updateCartBar(){var total=cart.reduce(function(s,c){return s+c.price*c.qty;},0);var count=cart.reduce(function(s,c){return s+c.qty;},0);document.getElementById('cart-count-txt').textContent=count+' item'+(count!==1?'s':'');document.getElementById('cart-total-txt').textContent='KES '+total.toFixed(2);document.getElementById('cart-bar').classList.toggle('visible',cart.length>0);}
+    function openCart(){var list=document.getElementById('cart-items-list');list.innerHTML='';cart.forEach(function(item,idx){var div=document.createElement('div');div.className='cart-item';div.innerHTML='<div class="cart-item-name">'+item.name+'</div><div class="qty-ctrl"><button onclick="changeQty('+idx+',-1)">-</button><span>'+item.qty+'</span><button onclick="changeQty('+idx+',1)">+</button></div><div class="cart-item-price">KES '+(item.price*item.qty).toFixed(2)+'</div>';list.appendChild(div);});var total=cart.reduce(function(s,c){return s+c.price*c.qty;},0);document.getElementById('cart-modal-total').textContent='KES '+total.toFixed(2);document.getElementById('cart-modal').classList.add('open');}
+    function closeCart(){document.getElementById('cart-modal').classList.remove('open');}
+    function changeQty(idx,delta){cart[idx].qty+=delta;if(cart[idx].qty<=0)cart.splice(idx,1);updateCartBar();if(cart.length===0){closeCart();return;}openCart();}
+    function placeOrder(){var name=document.getElementById('order-name').value.trim()||'Guest';var note=document.getElementById('order-note').value.trim();if(cart.length===0)return;var ref='TLN-'+Date.now().toString(36).toUpperCase().slice(-5);var orderData={ref:ref,name:name,note:note,items:cart.slice(),total:cart.reduce(function(s,c){return s+c.price*c.qty;},0),timestamp:Date.now(),status:'pending'};try{var req=indexedDB.open('POS_DB');req.onsuccess=function(e){var db=e.target.result;if(Array.from(db.objectStoreNames).includes('online_orders')){db.transaction(['online_orders'],'readwrite').objectStore('online_orders').add(orderData);}};}catch(e){}localStorage.setItem('last_online_order',JSON.stringify(orderData));cart.splice(0,cart.length);updateCartBar();closeCart();document.getElementById('order-ref').textContent='#'+ref;document.getElementById('success-modal').classList.add('open');}
+    loadMenu();
+  </script>
+</body>
+</html>
