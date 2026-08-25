@@ -143,29 +143,51 @@ export async function getBatchStockOnHand(productId, batchId, branchId) {
   return movements.reduce((acc, mov) => acc + mov.qty, 0);
 }
 
+/**
+ * Sales that have not reached the server exist nowhere else. Wiping them to
+ * re-seed loses real money, so every wipe path has to ask first.
+ */
+async function hasUnsyncedSales() {
+  return (await db.sales
+    .filter(s => s.synced_at === undefined || s.synced_at === null)
+    .count()) > 0;
+}
+
+async function wipeAllTables(reason) {
+  if (await hasUnsyncedSales()) {
+    console.error(`Refusing to wipe local data (${reason}): unsynced sales are still queued.`);
+    return false;
+  }
+  await Promise.all(db.tables.map(table => table.clear()));
+  return true;
+}
+
 // Seed the DB with mock data if empty
 export async function seedDatabase() {
   const dbVer = localStorage.getItem('db_seed_ver');
   if (dbVer !== 'v4_bar_data') {
     console.warn('New DB version required. Wiping old data...');
-    await Promise.all(db.tables.map(table => table.clear()));
-    localStorage.setItem('db_seed_ver', 'v4_bar_data');
+    // Only advance the marker if the wipe actually happened, otherwise the
+    // next boot would skip the migration entirely.
+    if (await wipeAllTables('seed version change')) {
+      localStorage.setItem('db_seed_ver', 'v4_bar_data');
+    }
   }
 
   const tenantCount = await db.tenants.count();
   const userCount = await db.users.count();
   const prodCount = await db.products.count();
   const custCount = await db.customers.count();
-  
+
   if (tenantCount > 0 && userCount > 0 && prodCount > 0 && custCount > 0) {
     console.log('Database fully seeded.');
     return;
   }
-  
+
   // If partial state, clear all tables
   if (tenantCount > 0) {
     console.warn('Partial database state detected. Wiping and re-seeding...');
-    await Promise.all(db.tables.map(table => table.clear()));
+    if (!await wipeAllTables('partial seed state')) return;
   }
 
   console.log('Initializing IndexedDB for POS...');

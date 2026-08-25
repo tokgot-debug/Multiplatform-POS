@@ -2,6 +2,16 @@ import { db } from '../db/schema.js';
 import { getStockOnHand } from '../db/index.js';
 import { state, showNotification } from '../context.js';
 
+/**
+ * Customer menu lives beside the app, so derive it from wherever the till is
+ * actually served. A hardcoded localhost URL prints QR codes nobody can scan.
+ */
+function defaultMenuUrl() {
+  const saved = localStorage.getItem('pos_menu_url');
+  if (saved) return saved;
+  return new URL('menu.html', window.location.origin).href;
+}
+
 export class QrToolsView {
   constructor(container) {
     this.container = container;
@@ -41,7 +51,7 @@ export class QrToolsView {
       '</div>',
       '</div>',
       '<div style="flex:1;min-width:220px;">',
-      '<div class="discount-field"><label>Menu URL</label><input type="text" id="qr-url-input" value="http://localhost:3005/menu.html" style="font-size:12px;"></div>',
+      '<div class="discount-field"><label>Menu URL</label><input type="text" id="qr-url-input" value="' + defaultMenuUrl() + '" style="font-size:12px;"></div>',
       '<div class="discount-field"><label>QR Size</label><select id="qr-size-sel"><option value="160">Small</option><option value="220" selected>Medium</option><option value="300">Large</option></select></div>',
       '<button class="discount-save-btn" id="qr-regen-btn" style="width:100%;">\u21BB Regenerate</button>',
       '<div style="margin-top:20px;background:rgba(200,130,42,0.08);border:1px solid rgba(200,130,42,0.2);border-radius:10px;padding:16px;">',
@@ -147,7 +157,8 @@ export class QrToolsView {
   generateQR() {
     const urlEl = document.getElementById('qr-url-input');
     const sizeEl = document.getElementById('qr-size-sel');
-    const url = urlEl ? urlEl.value.trim() : 'http://localhost:3005/menu.html';
+    const url = (urlEl && urlEl.value.trim()) || defaultMenuUrl();
+    if (urlEl) localStorage.setItem('pos_menu_url', url);
     const size = parseInt(sizeEl ? sizeEl.value : '220');
 
     const renderQR = () => {
