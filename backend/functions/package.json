@@ -9,7 +9,7 @@
   "scripts": {
     "build": "npm run clean && tsc -p tsconfig.json",
     "clean": "node scripts/clean.cjs",
-    "test": "npm run build && node --test test/sales-domain.test.cjs test/staff-auth.test.cjs",
+    "test": "npm run build && node --test test/sales-domain.test.cjs test/staff-auth.test.cjs test/provisioning.test.cjs",
     "watch": "tsc -p tsconfig.json --watch"
   },
   "dependencies": {

@@ -56,26 +56,34 @@ export function getFirebase() {
   return bootPromise;
 }
 
+export const DEVICE_ID = import.meta.env.VITE_DEVICE_ID || 'device-till-01';
+
 /**
- * Server-side verification of a staff PIN (scrypt, timing-safe compare, and a
- * five-attempt lockout). The browser never holds PIN material.
+ * Exchanges a staff PIN for a Firebase session carrying tenant/staff claims.
  *
- * NOTE: this is a *second factor*, not a way to obtain a session. The callable
- * rejects any caller whose token does not already carry tenant_id and staff_id
- * claims matching the profile. Establishing that first session still needs a
- * device-enrolment callable that mints a custom token; until it exists the till
- * runs local-only and the outbox simply does not drain.
+ * PIN verification is server-side (scrypt, timing-safe compare, five-attempt
+ * lockout); the browser never holds PIN material. This is the till's entry
+ * point - authenticateStaffPin cannot serve that role because it requires the
+ * very claims a fresh till does not have yet.
  */
-export async function authenticateStaffPin(staffId, pin, tenantId = TENANT_ID) {
+export async function startTillSession(staffId, pin, deviceId = DEVICE_ID, tenantId = TENANT_ID) {
   const fb = await getFirebase();
   if (!fb) throw new Error('Firebase is not configured on this till.');
-  if (!fb.authInstance.currentUser) {
-    throw new Error('This till has no Firebase session to verify a PIN against.');
-  }
 
-  const call = fb.functions.httpsCallable(fb.fnInstance, 'authenticateStaffPin');
-  const { data } = await call({ tenantId, staffId, pin });
+  const call = fb.functions.httpsCallable(fb.fnInstance, 'startTillSession');
+  const { data } = await call({ tenantId, staffId, deviceId, pin });
+  if (!data || !data.customToken) throw new Error('No session token was issued.');
+
+  await fb.auth.signInWithCustomToken(fb.authInstance, data.customToken);
   return data;
+}
+
+/**
+ * Opens (or reuses) this staff member's shift on this device. createSale
+ * refuses to run without one, so the outbox cannot drain until it exists.
+ */
+export async function openShift(branchId, deviceId = DEVICE_ID, openingFloatMinor = 0) {
+  return callFunction('openShift', { branchId, deviceId, openingFloatMinor });
 }
 
 /** Current signed-in user's custom claims, or null. */

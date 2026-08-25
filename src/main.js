@@ -212,12 +212,38 @@ async function populatePinUsers() {
   });
 }
 
+/**
+ * Signs the till into Firebase and makes sure a shift is open, so the outbox
+ * has somewhere to drain. Deliberately fire-and-forget: every failure mode ends
+ * with the operator still able to sell offline.
+ */
+async function establishCloudSession(user, pin) {
+  const { firebaseConfigured, startTillSession, openShift } = await import('./services/firebase.js');
+  if (!firebaseConfigured) return;
+
+  try {
+    await startTillSession(user.id, pin);
+    const branchId = state.currentBranch ? state.currentBranch.id : null;
+    if (branchId) await openShift(branchId);
+    if (state.syncManager) state.syncManager.syncOutbox();
+  } catch (err) {
+    console.warn('Backend session unavailable; till stays local-only.', err);
+    showNotification('Working offline: sales will queue until the backend is reachable.', 'warning');
+  }
+}
+
 function lockApp() {
   state.currentUser = null;
   document.getElementById('pin-input').value = '';
   document.getElementById('pin-error').innerText = '';
   document.getElementById('pin-modal').classList.add('active');
   document.getElementById('pos-shell').classList.add('hidden');
+
+  // Drop the backend session too, so the next operator cannot inherit the
+  // previous one's claims.
+  import('./services/firebase.js')
+    .then(({ firebaseConfigured, signOutTill }) => firebaseConfigured && signOutTill())
+    .catch(() => {});
 }
 
 // Process PIN Numpad entries
@@ -285,6 +311,12 @@ document.getElementById('numpad-ok').addEventListener('click', async () => {
 
     // Log user access session
     await logAuditEvent(state.currentTenant.id, user.id, 'LOGIN', 'USER', user.id);
+
+    // Establish the backend session in the background. The till is offline-first,
+    // so a failure here must never block the operator from selling - it only
+    // means queued sales wait longer. The server re-checks everything at
+    // checkout regardless of what this local PIN gate allowed.
+    establishCloudSession(user, pin);
 
     // Load default tab
     switchTab('till');
