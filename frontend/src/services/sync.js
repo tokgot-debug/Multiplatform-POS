@@ -9,7 +9,7 @@ import { mapPaymentMethod, toMinor } from './tender';
  * so anything it produces is recorded as SIMULATED and must never be shown to a
  * taxpayer as proof of fiscalisation.
  */
-const DEMO_FISCAL = import.meta.env.VITE_DEMO_FISCAL === '1';
+const DEMO_FISCAL = process.env.NEXT_PUBLIC_DEMO_FISCAL === '1';
 
 export class SyncManager {
   constructor() {

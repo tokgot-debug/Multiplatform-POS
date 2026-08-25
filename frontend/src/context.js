@@ -1,4 +1,16 @@
-// Global shared context to eliminate circular dependencies
+// Global shared context to eliminate circular dependencies.
+// The annotation stops TypeScript inferring `null` as the only permitted type
+// for these slots when the TSX shell reads them.
+/**
+ * @type {{
+ *   currentUser: any,
+ *   currentBranch: any,
+ *   currentTenant: any,
+ *   activeShift: any,
+ *   syncManager: any,
+ *   views: Record<string, any>
+ * }}
+ */
 export const state = {
   currentUser: null,
   currentBranch: null,

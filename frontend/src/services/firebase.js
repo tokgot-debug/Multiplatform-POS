@@ -8,16 +8,16 @@
  */
 
 const cfg = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
 };
 
-export const REGION = import.meta.env.VITE_FIREBASE_REGION || 'europe-west1';
-export const TENANT_ID = import.meta.env.VITE_TENANT_ID || null;
+export const REGION = process.env.NEXT_PUBLIC_FIREBASE_REGION || 'europe-west1';
+export const TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID || null;
 
 /** True when enough config exists to reach a real project. */
 export const firebaseConfigured = Boolean(cfg.apiKey && cfg.projectId && cfg.appId);
@@ -41,7 +41,7 @@ async function boot() {
   const dbInstance = firestore.getFirestore(app);
   const fnInstance = functions.getFunctions(app, REGION);
 
-  if (import.meta.env.VITE_USE_EMULATORS === '1') {
+  if (process.env.NEXT_PUBLIC_USE_EMULATORS === '1') {
     auth.connectAuthEmulator(authInstance, 'http://127.0.0.1:9099', { disableWarnings: true });
     firestore.connectFirestoreEmulator(dbInstance, '127.0.0.1', 8080);
     functions.connectFunctionsEmulator(fnInstance, '127.0.0.1', 5001);
@@ -56,7 +56,7 @@ export function getFirebase() {
   return bootPromise;
 }
 
-export const DEVICE_ID = import.meta.env.VITE_DEVICE_ID || 'device-till-01';
+export const DEVICE_ID = process.env.NEXT_PUBLIC_DEVICE_ID || 'device-till-01';
 
 /**
  * Exchanges a staff PIN for a Firebase session carrying tenant/staff claims.
