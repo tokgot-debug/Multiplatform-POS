@@ -212,9 +212,11 @@ export class QrToolsView {
 
     try {
       if (type === 'sales') {
-        headers = ['Order Ref', 'Table', 'Total (KES)', 'Payment', 'Status', 'Date'];
-        const orders = await db.orders.where('timestamp').above(fromTs).toArray().catch(() => []);
-        rows = orders.map(o => [o.id || o.receipt_no || '-', o.table_name || '-', Number(o.total_amount || 0).toFixed(2), o.payment_method || '-', o.status || '-', new Date(o.timestamp).toLocaleString()]);
+        headers = ['Invoice No', 'Table', 'Total (KES)', 'Payment', 'Status', 'Date'];
+        // sold_at is an indexed ISO-8601 string, so it compares lexicographically.
+        const orders = await db.sales.where('sold_at').above(new Date(fromTs).toISOString()).toArray();
+        const methodBySale = new Map((await db.payments.toArray()).map(p => [p.sale_id, p.method]));
+        rows = orders.map(o => [o.invoice_no || o.id || '-', o.table_no || '-', Number(o.grand_total || 0).toFixed(2), methodBySale.get(o.id) || '-', o.status || '-', new Date(o.sold_at).toLocaleString()]);
       } else if (type === 'inventory') {
         headers = ['SKU', 'Product Name', 'Category', 'UOM', 'Sell Price (KES)', 'Active'];
         const prods = await db.products.toArray();

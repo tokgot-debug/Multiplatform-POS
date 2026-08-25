@@ -6,11 +6,16 @@
   "scripts": {
     "dev": "vite --port 3000 --host 127.0.0.1",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "emulators": "node scripts/start-emulators.cjs",
+    "emulators:doctor": "node scripts/start-emulators.cjs --doctor",
+    "test:emulator-runner": "node --test scripts/test/emulator-runner.test.cjs",
+    "deploy": "npm run build && firebase deploy"
   },
   "dependencies": {
     "chart.js": "^4.4.3",
     "dexie": "^4.0.8",
+    "firebase": "^12.18.0",
     "lucide": "^0.395.0"
   },
   "devDependencies": {

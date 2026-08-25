@@ -144,25 +144,33 @@ export class FinanceView {
     const endTs = new Date(endStr + 'T23:59:59').getTime();
 
     try {
-      const allOrders = await db.orders.toArray();
-      const orders = allOrders.filter(o => {
-        const ts = o.timestamp || 0;
-        return ts >= startTs && ts <= endTs && o.status === 'COMPLETED';
+      const allSales = await db.sales.toArray();
+      const orders = allSales.filter(s => {
+        const ts = Date.parse(s.sold_at || '') || 0;
+        return ts >= startTs && ts <= endTs && s.status === 'COMPLETED';
       });
+
+      // Settlement split comes from the payments ledger, which is the only
+      // place a sale's tender method is recorded.
+      const saleIds = new Set(orders.map(s => s.id));
+      const allPayments = await db.payments.toArray();
+      const paymentsBySale = new Map();
+      for (const p of allPayments) {
+        if (!saleIds.has(p.sale_id)) continue;
+        if (!paymentsBySale.has(p.sale_id)) paymentsBySale.set(p.sale_id, []);
+        paymentsBySale.get(p.sale_id).push(p);
+      }
 
       let gross = 0, discounts = 0, cash = 0, mpesa = 0;
 
       for (const o of orders) {
-        gross += (o.total || 0);
+        gross += (o.subtotal || 0);
         discounts += (o.discount || 0);
-        const method = (o.payment_method || '').toUpperCase();
-        if (method === 'CASH') {
-          cash += Math.max(0, (o.total || 0) - (o.discount || 0));
-        } else if (method === 'MPESA') {
-          mpesa += Math.max(0, (o.total || 0) - (o.discount || 0));
-        } else if (method === 'SPLIT') {
-          cash += (o.split_cash || 0);
-          mpesa += (o.split_mpesa || 0);
+        for (const p of (paymentsBySale.get(o.id) || [])) {
+          const method = (p.method || '').toUpperCase();
+          const amount = p.amount || 0;
+          if (method === 'CASH') cash += amount;
+          else if (method.includes('MPESA')) mpesa += amount;
         }
       }
 

@@ -3,3 +3,30 @@ dist/
 .DS_Store
 .env
 .env.*
+!.env.example
+!**/.env.example
+
+# Next.js frontend output
+.next/
+frontend/.next/
+frontend/out/
+*.tsbuildinfo
+
+# Firebase local/deploy state
+.firebase/
+.emulator/
+.firebaserc
+firebase-debug.log*
+firestore-debug.log*
+ui-debug.log*
+
+# Cloud Functions build and test output
+backend/functions/lib/
+backend/functions/coverage/
+
+# Service-account credentials are never repository files
+*serviceAccount*.json
+*service-account*.json
+*adminsdk*.json
+*-firebase-adminsdk-*.json
+sa-key.json

@@ -1,0 +1,22 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function hasTenantClaim(tenantId) {
+      return request.auth != null
+        && request.auth.token.tenant_id is string
+        && request.auth.token.tenant_id == tenantId;
+    }
+
+    // Keep tenant media private by default. Uploads remain disabled until a
+    // product-media workflow defines file size, content type, and role checks.
+    match /tenants/{tenantId}/{allPaths=**} {
+      allow read: if hasTenantClaim(tenantId);
+      allow write: if false;
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

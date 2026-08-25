@@ -1,15 +1,17 @@
-window.addEventListener('error', function(e) {
-  const errDiv = document.createElement('div');
-  errDiv.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);color:#ff4444;padding:20px;z-index:999999;overflow:auto;font-family:monospace;';
-  errDiv.innerHTML = '<h2>Unhandled Error!</h2><p>' + e.message + '</p><pre>' + (e.error ? e.error.stack : '') + '</pre>';
-  document.body.appendChild(errDiv);
-});
-window.addEventListener('unhandledrejection', function(e) {
-  const errDiv = document.createElement('div');
-  errDiv.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);color:#ffaa00;padding:20px;z-index:999999;overflow:auto;font-family:monospace;';
-  errDiv.innerHTML = '<h2>Unhandled Promise Rejection!</h2><p>' + e.reason + '</p><pre>' + (e.reason && e.reason.stack ? e.reason.stack : '') + '</pre>';
-  document.body.appendChild(errDiv);
-});
+// Full-screen crash overlay is a development aid only. In production a stray
+// rejection must never paint over a live till.
+if (import.meta.env.DEV) {
+  const showCrash = (title, colour, message, stack) => {
+    const errDiv = document.createElement('div');
+    errDiv.style.cssText = `position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);color:${colour};padding:20px;z-index:999999;overflow:auto;font-family:monospace;`;
+    errDiv.innerHTML = `<h2>${title}</h2><p></p><pre></pre>`;
+    errDiv.querySelector('p').textContent = message;
+    errDiv.querySelector('pre').textContent = stack || '';
+    document.body.appendChild(errDiv);
+  };
+  window.addEventListener('error', (e) => showCrash('Unhandled Error!', '#ff4444', e.message, e.error && e.error.stack));
+  window.addEventListener('unhandledrejection', (e) => showCrash('Unhandled Promise Rejection!', '#ffaa00', String(e.reason), e.reason && e.reason.stack));
+}
 
 import { db } from './db/schema';
 import { seedDatabase, logAuditEvent } from './db/index';
@@ -367,4 +369,3 @@ async function switchTab(tabName) {
 
 // Bootstrap on window load
 window.addEventListener('DOMContentLoaded', initApp);
-console.log('Force Vite reload for pin user dropdown fix');
