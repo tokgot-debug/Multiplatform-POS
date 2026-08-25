@@ -1,5 +1,12 @@
 import Dexie from 'dexie';
 
+/**
+ * Tables are declared through Dexie's schema strings below rather than as
+ * class fields, so TypeScript cannot see them. This annotation exposes them to
+ * the ported TSX screens without a cast at every call site.
+ *
+ * @type {Dexie & Record<string, import('dexie').Table<any, any>>}
+ */
 export const db = new Dexie('POS_DB');
 
 db.version(1).stores({

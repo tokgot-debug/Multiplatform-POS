@@ -1,8 +1,12 @@
 "use client";
 
-import { ViewMount } from "@/components/view-mount";
-import { MpesaView } from "@/ui/mpesa";
+import { ScreenFrame } from "@/components/screen-frame";
+import { MpesaScreen } from "@/components/screens/mpesa-screen";
 
 export default function Page() {
-  return <ViewMount tab="mpesa" view={MpesaView} />;
+  return (
+    <ScreenFrame tab="mpesa">
+      <MpesaScreen />
+    </ScreenFrame>
+  );
 }

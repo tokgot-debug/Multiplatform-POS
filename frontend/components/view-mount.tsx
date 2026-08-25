@@ -1,37 +1,24 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
 
-import { canViewTab, DEFAULT_TAB } from "@/navigation";
 import { showNotification } from "@/context";
 
-import { usePosSession } from "./pos-session";
+import { useScreenGuard } from "./screen-frame";
 
 type ViewClass = new (container: HTMLElement) => { load: () => Promise<void> | void };
 
 /**
  * Mounts one of the original view classes into this route.
  *
- * Each screen still renders through its own code, so the markup and styling are
- * the ones the client approved - there is no second implementation to drift.
- * Converting a screen to real JSX later means replacing one page's <ViewMount>
- * and nothing else.
+ * A screen keeps rendering through its own code until it has been ported to
+ * JSX and proven against visual/baselines/<tab>.png. Porting a screen means
+ * swapping this for the new component in that one page file.
  */
 export function ViewMount({ tab, view: View }: { tab: string; view: ViewClass }) {
   const ref = useRef<HTMLElement | null>(null);
   const loadedFor = useRef<HTMLElement | null>(null);
-  const router = useRouter();
-  const { ready, user } = usePosSession();
-
-  const allowed = user ? canViewTab(user.role, tab) : false;
-
-  useEffect(() => {
-    if (!ready || !user || allowed) return;
-    // Mirrors the original switchTab guard: refuse and bounce to the default.
-    showNotification("Access Denied: Your access level does not permit viewing this module.", "error");
-    router.replace(`/${DEFAULT_TAB}`);
-  }, [ready, user, allowed, router]);
+  const { ready, user, allowed } = useScreenGuard(tab);
 
   useEffect(() => {
     const container = ref.current;
