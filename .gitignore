@@ -28,3 +28,9 @@ backend/functions/coverage/
 *adminsdk*.json
 *-firebase-adminsdk-*.json
 sa-key.json
+
+# Playwright visual harness output (baselines ARE committed)
+frontend/visual/report/
+frontend/test-results/
+frontend/visual/**/*-actual.png
+frontend/visual/**/*-diff.png

@@ -14,7 +14,7 @@ type ActiveUser = { id: string; name: string; role: string };
  * the original index.html so the tablet mock-up renders identically.
  */
 export function PinLock() {
-  const { signIn } = usePosSession();
+  const { ready, signIn } = usePosSession();
   const [users, setUsers] = useState<ActiveUser[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [userId, setUserId] = useState("");
@@ -22,11 +22,14 @@ export function PinLock() {
   const [error, setError] = useState("");
 
   useEffect(() => {
+    // The lock screen paints before boot finishes, so the account list has to
+    // wait for seeding - querying earlier returns an empty table.
+    if (!ready) return;
     listActiveUsers()
       .then((rows: ActiveUser[]) => setUsers(rows))
       .catch(() => setUsers([]))
       .finally(() => setLoaded(true));
-  }, []);
+  }, [ready]);
 
   function press(value: string) {
     if (pin.length < 4) setPin(pin + value);
