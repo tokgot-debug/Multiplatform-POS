@@ -1,23 +1,21 @@
 {
-  "name": "kra-etims-pos",
+  "name": "vanbransa-pos-workspace",
   "private": true,
   "version": "1.0.0",
-  "type": "module",
+  "workspaces": [
+    "frontend"
+  ],
   "scripts": {
-    "dev": "vite --port 3000 --host 127.0.0.1",
-    "build": "vite build",
-    "preview": "vite preview",
-    "test": "node --test \"src/**/*.test.mjs\"",
+    "dev": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "preview": "npm --prefix frontend run preview",
+    "test": "npm --prefix frontend test && npm --prefix backend/functions test",
+    "test:frontend": "npm --prefix frontend test",
+    "test:backend": "npm --prefix backend/functions test",
+    "smoke": "node scripts/smoke-test.mjs",
     "emulators": "node scripts/start-emulators.cjs",
     "emulators:doctor": "node scripts/start-emulators.cjs --doctor",
     "test:emulator-runner": "node --test scripts/test/emulator-runner.test.cjs",
     "deploy": "npm run build && firebase deploy"
-  },
-  "dependencies": {
-    "dexie": "^4.0.8",
-    "firebase": "^12.18.0"
-  },
-  "devDependencies": {
-    "vite": "^5.2.11"
   }
 }

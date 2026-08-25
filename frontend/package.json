@@ -1,0 +1,19 @@
+{
+  "name": "vanbransa-pos-frontend",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 3000 --host 127.0.0.1",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "node --test \"src/**/*.test.mjs\""
+  },
+  "dependencies": {
+    "dexie": "^4.0.8",
+    "firebase": "^12.18.0"
+  },
+  "devDependencies": {
+    "vite": "^5.2.11"
+  }
+}

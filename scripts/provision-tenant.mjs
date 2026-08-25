@@ -1,7 +1,7 @@
 /**
  * One-shot Firestore provisioning for a Vanbransa tenant.
  *
- * Sends the till's own opening dataset (src/db/seed-data.js) to the
+ * Sends the till's own opening dataset (frontend/src/db/seed-data.js) to the
  * provisionTenant callable, so the deployed catalogue and the offline catalogue
  * come from one source and cannot drift apart.
  *
@@ -14,7 +14,7 @@
 
 import { readFileSync } from "node:fs";
 
-import * as SEED from "../src/db/seed-data.js";
+import * as SEED from "../frontend/src/db/seed-data.js";
 
 const REGION = process.env.FIREBASE_REGION || "europe-west1";
 const PROJECT = process.env.FIREBASE_PROJECT || "vanbransa-pos";

@@ -6,10 +6,6 @@ dist/
 !.env.example
 !**/.env.example
 
-# Next.js frontend output
-.next/
-frontend/.next/
-frontend/out/
 *.tsbuildinfo
 
 # Firebase local/deploy state
