@@ -149,9 +149,69 @@ body.dark-mode {
 .sidebar-nav {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 6px;
   flex: 1;
 }
+
+.sidebar-group {
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid rgba(255,255,255,0.02);
+  padding-bottom: 8px;
+  margin-bottom: 4px;
+}
+
+.sidebar-group:last-child {
+  border-bottom: none;
+}
+
+.sidebar-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  font-family: var(--font-main);
+  transition: color 0.2s;
+  text-align: left;
+}
+
+.sidebar-group-header:hover {
+  color: #fff;
+}
+
+.sidebar-group-items {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-left: 6px;
+  overflow: hidden;
+  max-height: 500px;
+  transition: max-height 0.25s ease-out;
+}
+
+.sidebar-group-items.collapsed {
+  max-height: 0 !important;
+}
+
+.group-arrow {
+  font-size: 8px;
+  transition: transform 0.2s;
+  color: #475569;
+}
+
+.sidebar-group.collapsed .group-arrow {
+  transform: rotate(-90deg);
+}
+
 
 .sidebar-nav-btn {
   display: flex;

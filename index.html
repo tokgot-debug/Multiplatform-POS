@@ -94,70 +94,121 @@
 
         <!-- Navigation items -->
         <nav class="sidebar-nav" id="sidebar-nav">
-          <button class="sidebar-nav-btn active" data-tab="till">
-            <span class="snb-icon">🏪</span>
-            <span class="snb-label">Dashboard</span>
-          </button>
-          <button class="sidebar-nav-btn" data-tab="orders">
-            <span class="snb-icon">🧾</span>
-            <span class="snb-label">Orders Viewer</span>
-          </button>
-          <button class="sidebar-nav-btn" data-tab="shifts">
-            <span class="snb-icon">💵</span>
-            <span class="snb-label">Shift Management</span>
-          </button>
-          <button class="sidebar-nav-btn" data-tab="inventory">
-            <span class="snb-icon">🍽️</span>
-            <span class="snb-label">Menu Admin</span>
-          </button>
-          <button class="sidebar-nav-btn" data-tab="mpesa">
-            <span class="snb-icon">📱</span>
-            <span class="snb-label">Mpesa</span>
-          </button>
-          <button class="sidebar-nav-btn" data-tab="store-stock">
-            <span class="snb-icon">📦</span>
-            <span class="snb-label">Store Stock</span>
-          </button>
-          <button class="sidebar-nav-btn" data-tab="house-stock">
-            <span class="snb-icon">📊</span>
-            <span class="snb-label">House Stock</span>
-          </button>
-          <button class="sidebar-nav-btn" data-tab="users">
-            <span class="snb-icon">👥</span>
-            <span class="snb-label">Users</span>
-          </button>
-          <button class="sidebar-nav-btn" data-tab="audit-logs">
-            <span class="snb-icon">📜</span>
-            <span class="snb-label">Audit Logs</span>
-          </button>
-          <button class="sidebar-nav-btn" data-tab="subscriptions">
-            <span class="snb-icon">💎</span>
-            <span class="snb-label">Subscription</span>
-          </button>
-          <button class="sidebar-nav-btn" data-tab="kds">
-            <span class="snb-icon">🍳</span>
-            <span class="snb-label">Kitchen Display</span>
-          </button>
-          <button class="sidebar-nav-btn" data-tab="procurement">
-            <span class="snb-icon">📦</span>
-            <span class="snb-label">Procurement</span>
-          </button>
-          <button class="sidebar-nav-btn" data-tab="customers">
-            <span class="snb-icon">👥</span>
-            <span class="snb-label">CRM &amp; Loyalty</span>
-          </button>
-          <button class="sidebar-nav-btn" data-tab="finance">
-            <span class="snb-icon">📈</span>
-            <span class="snb-label">Financials & AI</span>
-          </button>
-          <button class="sidebar-nav-btn" data-tab="qrtools">
-            <span class="snb-icon">🔧</span>
-            <span class="snb-label">QR &amp; Tools</span>
-          </button>
-          <button class="sidebar-nav-btn" data-tab="settings">
-            <span class="snb-icon">⚙️</span>
-            <span class="snb-label">Settings</span>
-          </button>
+          
+          <!-- Group 1: 🏪 POS Terminal -->
+          <div class="sidebar-group">
+            <button class="sidebar-group-header" type="button">
+              <span>🏪 POS Terminal</span>
+              <span class="group-arrow">▼</span>
+            </button>
+            <div class="sidebar-group-items">
+              <button class="sidebar-nav-btn active" data-tab="till">
+                <span class="snb-icon">🏪</span>
+                <span class="snb-label">Dashboard</span>
+              </button>
+              <button class="sidebar-nav-btn" data-tab="orders">
+                <span class="snb-icon">🧾</span>
+                <span class="snb-label">Orders Viewer</span>
+              </button>
+              <button class="sidebar-nav-btn" data-tab="kds">
+                <span class="snb-icon">🍳</span>
+                <span class="snb-label">Kitchen Display</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Group 2: 📈 Cash & Shift -->
+          <div class="sidebar-group">
+            <button class="sidebar-group-header" type="button">
+              <span>📈 Cash &amp; Shift</span>
+              <span class="group-arrow">▼</span>
+            </button>
+            <div class="sidebar-group-items">
+              <button class="sidebar-nav-btn" data-tab="shifts">
+                <span class="snb-icon">💵</span>
+                <span class="snb-label">Shift Management</span>
+              </button>
+              <button class="sidebar-nav-btn" data-tab="mpesa">
+                <span class="snb-icon">📱</span>
+                <span class="snb-label">Mpesa</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Group 3: 📦 Supply Chain -->
+          <div class="sidebar-group">
+            <button class="sidebar-group-header" type="button">
+              <span>📦 Supply Chain</span>
+              <span class="group-arrow">▼</span>
+            </button>
+            <div class="sidebar-group-items">
+              <button class="sidebar-nav-btn" data-tab="store-stock">
+                <span class="snb-icon">📦</span>
+                <span class="snb-label">Store Stock</span>
+              </button>
+              <button class="sidebar-nav-btn" data-tab="house-stock">
+                <span class="snb-icon">📊</span>
+                <span class="snb-label">House Stock</span>
+              </button>
+              <button class="sidebar-nav-btn" data-tab="procurement">
+                <span class="snb-icon">📦</span>
+                <span class="snb-label">Procurement</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Group 4: 👥 Business Admin -->
+          <div class="sidebar-group">
+            <button class="sidebar-group-header" type="button">
+              <span>👥 Business Admin</span>
+              <span class="group-arrow">▼</span>
+            </button>
+            <div class="sidebar-group-items">
+              <button class="sidebar-nav-btn" data-tab="users">
+                <span class="snb-icon">👥</span>
+                <span class="snb-label">Users</span>
+              </button>
+              <button class="sidebar-nav-btn" data-tab="customers">
+                <span class="snb-icon">👥</span>
+                <span class="snb-label">CRM &amp; Loyalty</span>
+              </button>
+              <button class="sidebar-nav-btn" data-tab="audit-logs">
+                <span class="snb-icon">📜</span>
+                <span class="snb-label">Audit Logs</span>
+              </button>
+              <button class="sidebar-nav-btn" data-tab="subscriptions">
+                <span class="snb-icon">💎</span>
+                <span class="snb-label">Subscription</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Group 5: ⚙️ Tools & System -->
+          <div class="sidebar-group">
+            <button class="sidebar-group-header" type="button">
+              <span>⚙️ Tools &amp; System</span>
+              <span class="group-arrow">▼</span>
+            </button>
+            <div class="sidebar-group-items">
+              <button class="sidebar-nav-btn" data-tab="inventory">
+                <span class="snb-icon">🍽️</span>
+                <span class="snb-label">Menu Admin</span>
+              </button>
+              <button class="sidebar-nav-btn" data-tab="finance">
+                <span class="snb-icon">📈</span>
+                <span class="snb-label">Financials &amp; AI</span>
+              </button>
+              <button class="sidebar-nav-btn" data-tab="qrtools">
+                <span class="snb-icon">🔧</span>
+                <span class="snb-label">QR &amp; Tools</span>
+              </button>
+              <button class="sidebar-nav-btn" data-tab="settings">
+                <span class="snb-icon">⚙️</span>
+                <span class="snb-label">Settings</span>
+              </button>
+            </div>
+          </div>
+
         </nav>
 
         <!-- Bottom: user profile + sign out -->

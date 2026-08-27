@@ -135,6 +135,20 @@ async function initApp() {
       switchTab(tab);
     });
   });
+
+  // Bind collapsible sidebar groups
+  document.querySelectorAll('.sidebar-group-header').forEach(header => {
+    header.addEventListener('click', () => {
+      const group = header.closest('.sidebar-group');
+      const items = group.querySelector('.sidebar-group-items');
+      const isCollapsed = group.classList.toggle('collapsed');
+      if (isCollapsed) {
+        items.classList.add('collapsed');
+      } else {
+        items.classList.remove('collapsed');
+      }
+    });
+  });
   
   // Bind online/offline simulator toggler (double click indicator to toggle for testing)
   const connIndicator = document.getElementById('connectivity-indicator');
@@ -364,6 +378,13 @@ async function switchTab(tabName) {
     btn.classList.remove('active');
     if (btn.getAttribute('data-tab') === tabName) {
       btn.classList.add('active');
+      // Auto-expand containing sidebar group
+      const group = btn.closest('.sidebar-group');
+      if (group) {
+        group.classList.remove('collapsed');
+        const items = group.querySelector('.sidebar-group-items');
+        if (items) items.classList.remove('collapsed');
+      }
     }
   });
   // Also keep legacy tab-btn in sync (hidden but used by other code)
