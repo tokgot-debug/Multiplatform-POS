@@ -139,25 +139,25 @@ export class SubscriptionsView {
               <!-- Plan Item 1 -->
               <label class="plan-select-label" style="border: 1px solid var(--border-color); border-radius: 10px; padding: 12px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; background: rgba(255,255,255,0.01); transition: all 0.2s;">
                 <div style="display: flex; align-items: center; gap: 10px;">
-                  <input type="radio" name="billing-plan" value="Bronze Standard" data-price="2500" checked style="accent-color: var(--accent-amber);">
+                  <input type="radio" name="billing-plan" value="Bronze Standard" data-price="3000" checked style="accent-color: var(--accent-amber);">
                   <div>
                     <strong style="color: #fff; font-size: 13px;">Bronze Standard</strong>
                     <div style="font-size: 11px; color: var(--text-secondary);">Up to 3 staff members</div>
                   </div>
                 </div>
-                <strong style="color: var(--accent-amber); font-size: 13px;">KES 2,500/mo</strong>
+                <strong style="color: var(--accent-amber); font-size: 13px;">KES 3,000/mo</strong>
               </label>
 
               <!-- Plan Item 2 -->
               <label class="plan-select-label" style="border: 1px solid var(--border-color); border-radius: 10px; padding: 12px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; background: rgba(255,255,255,0.01); transition: all 0.2s;">
                 <div style="display: flex; align-items: center; gap: 10px;">
-                  <input type="radio" name="billing-plan" value="Silver Premium" data-price="5000" style="accent-color: var(--accent-amber);">
+                  <input type="radio" name="billing-plan" value="Silver Premium" data-price="5500" style="accent-color: var(--accent-amber);">
                   <div>
                     <strong style="color: #fff; font-size: 13px;">Silver Premium</strong>
                     <div style="font-size: 11px; color: var(--text-secondary);">Up to 10 staff members</div>
                   </div>
                 </div>
-                <strong style="color: var(--accent-amber); font-size: 13px;">KES 5,000/mo</strong>
+                <strong style="color: var(--accent-amber); font-size: 13px;">KES 5,500/mo</strong>
               </label>
 
               <!-- Plan Item 3 -->
@@ -199,7 +199,7 @@ export class SubscriptionsView {
           <div id="mpesa-loader-spinner" style="width: 50px; height: 50px; border: 4px solid rgba(16, 185, 129, 0.1); border-top-color: var(--accent-green); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px;"></div>
           <h4 id="mpesa-loader-title" style="color: #fff; font-size: 16px; margin: 0 0 10px 0;">Sending STK Push Request...</h4>
           <p id="mpesa-loader-desc" style="color: var(--text-secondary); font-size: 12px; margin: 0 0 20px 0;">Please check your phone for the M-Pesa PIN prompt.</p>
-          <div style="font-size: 11px; color: var(--text-muted); font-family: monospace;" id="mpesa-loader-details">KES 2,500.00 • Bronze Standard</div>
+          <div style="font-size: 11px; color: var(--text-muted); font-family: monospace;" id="mpesa-loader-details">KES 3,000.00 • Bronze Standard</div>
         </div>
       </div>
 
