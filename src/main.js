@@ -206,8 +206,8 @@ async function populatePinUsers() {
         usr.role = 'Waiter/Waitress';
       }
     });
-    // Migrate Corkage Fee price to 3000
-    await db.products.update('prod-corkage', { sell_price: 3000.00 });
+    // Migrate Corkage Fee price and image
+    await db.products.update('prod-corkage', { sell_price: 3000.00, image_data: '/ai_images/corkage.jpg' });
   } catch (e) {
     console.warn('Database startup migrations skipped:', e);
   }
