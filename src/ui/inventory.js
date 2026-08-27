@@ -276,6 +276,12 @@ export class InventoryView {
 
   async bindProductEditorEvents(pane) {
     const categories = await db.categories.toArray();
+    const escapeAttribute = (value) => String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
     
     const openEditor = async (prodId = null) => {
       let prod = { 
@@ -296,16 +302,16 @@ export class InventoryView {
           <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top:16px;">
             <div style="grid-column: span 2;">
               <label>Product Name</label>
-              <input type="text" id="pe-name" value="${prod.name}" class="pe-input">
+              <input type="text" id="pe-name" value="${escapeAttribute(prod.name)}" class="pe-input">
             </div>
             <div>
               <label>SKU</label>
-              <input type="text" id="pe-sku" value="${prod.sku}" class="pe-input">
+              <input type="text" id="pe-sku" value="${escapeAttribute(prod.sku)}" class="pe-input">
             </div>
             <div>
               <label>Category</label>
               <select id="pe-category" class="pe-input">
-                ${categories.map(c => `<option value="${c.id}" ${c.id === prod.category_id ? 'selected' : ''}>${c.name}</option>`).join('')}
+                ${categories.map(c => `<option value="${escapeAttribute(c.id)}" ${c.id === prod.category_id ? 'selected' : ''}>${escapeAttribute(c.name)}</option>`).join('')}
               </select>
             </div>
             <div>
@@ -318,7 +324,7 @@ export class InventoryView {
             </div>
             <div>
               <label>UOM (Unit of Measure)</label>
-              <input type="text" id="pe-uom" value="${prod.uom}" class="pe-input">
+              <input type="text" id="pe-uom" value="${escapeAttribute(prod.uom)}" class="pe-input">
             </div>
             <div>
               <label>Tax Code</label>
@@ -340,7 +346,7 @@ export class InventoryView {
             <div style="grid-column: span 2; margin-top: 8px;">
               <label>Product Image</label>
               <div style="display:flex; align-items:center; gap: 12px; margin-top:4px;">
-                <img id="pe-image-preview" src="${prod.image_data || ''}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 6px; background: rgba(0,0,0,0.2); display: ${prod.image_data ? 'block' : 'none'};">
+                <img id="pe-image-preview" src="${escapeAttribute(prod.image_data)}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 6px; background: rgba(0,0,0,0.2); display: ${prod.image_data ? 'block' : 'none'};">
                 <div id="pe-image-placeholder" style="width: 60px; height: 60px; border-radius: 6px; background: rgba(0,0,0,0.2); display: ${prod.image_data ? 'none' : 'flex'}; align-items:center; justify-content:center; color: var(--text-muted); font-size: 20px;">📷</div>
                 <input type="file" id="pe-image-upload" accept="image/*" style="display:none;">
                 <button class="sec-btn" id="pe-image-btn" style="padding: 6px 12px; font-size: 11px;">Upload Image</button>
