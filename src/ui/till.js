@@ -65,11 +65,6 @@ export class TillView {
           
           <div class="cat-filters" id="cat-filters">
             <div class="filter-chip active" data-cat="all">All Items</div>
-            <div class="filter-chip" data-cat="cat-beers">🍺 Beers & Ciders</div>
-            <div class="filter-chip" data-cat="cat-spirits">🥃 Spirits & Wines</div>
-            <div class="filter-chip" data-cat="cat-softdrinks">🥤 Soft Drinks</div>
-            <div class="filter-chip" data-cat="cat-food">🍽️ Food & Meals</div>
-            <div class="filter-chip" data-cat="cat-services">🧾 Services</div>
           </div>
 
           <div class="product-grid" id="till-prod-grid">
@@ -328,13 +323,15 @@ export class TillView {
       this.filterCatalogue();
     });
 
-    // Category filter chips
-    document.querySelectorAll('.filter-chip').forEach(chip => {
-      chip.addEventListener('click', (e) => {
-        document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
-        e.target.classList.add('active');
-        this.filterCatalogue();
-      });
+    // Category chips are populated after this binding, so delegate from their stable container.
+    const categoryFilters = document.getElementById('cat-filters');
+    categoryFilters.addEventListener('click', (e) => {
+      const chip = e.target.closest('.filter-chip');
+      if (!chip || !categoryFilters.contains(chip)) return;
+
+      categoryFilters.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      this.filterCatalogue();
     });
 
     // Simulate Barcode Scanner action
@@ -438,32 +435,64 @@ export class TillView {
   }
 
   async loadProducts() {
-    const products = await db.products.where('is_active').equals(1).toArray();
+    const [products, stockMovements, barcodes, categories] = await Promise.all([
+      db.products.where('is_active').equals(1).toArray(),
+      db.stock_movements.toArray(),
+      db.barcodes.toArray(),
+      db.categories.toArray()
+    ]);
     const grid = document.getElementById('till-prod-grid');
     grid.innerHTML = '';
+    this.renderCategoryFilters(products, categories);
+
+    const branchId = state.currentBranch?.id;
+    const houseStockByProduct = new Map();
+    for (const movement of stockMovements) {
+      if (movement.location !== 'HOUSE') continue;
+      if (branchId && movement.branch_id && String(movement.branch_id) !== String(branchId)) continue;
+
+      const productId = String(movement.product_id);
+      const quantity = Number(movement.qty) || 0;
+      houseStockByProduct.set(productId, (houseStockByProduct.get(productId) || 0) + quantity);
+    }
+
+    const barcodeByProduct = new Map();
+    for (const barcode of barcodes) {
+      const productId = String(barcode.product_id);
+      if (!barcodeByProduct.has(productId)) {
+        barcodeByProduct.set(productId, String(barcode.barcode ?? ''));
+      }
+    }
+
+    const fragment = document.createDocumentFragment();
     
     for (const prod of products) {
-      const stock = await getHouseStock(prod.id, state.currentBranch.id);
+      const productId = String(prod.id);
+      const name = String(prod.name ?? 'Unnamed product');
+      const sku = String(prod.sku ?? '');
+      const numericPrice = Number(prod.sell_price);
+      const sellPrice = Number.isFinite(numericPrice) ? numericPrice : 0;
+      const imageData = typeof prod.image_data === 'string' ? prod.image_data : '';
+      const stock = houseStockByProduct.get(productId) || 0;
+      const normalizedProduct = { ...prod, name, sku, sell_price: sellPrice };
       
       const card = document.createElement('div');
       card.className = `product-card ${prod.is_batch_tracked ? 'batch-tracked' : ''}`;
       card.setAttribute('data-id', prod.id);
-      card.setAttribute('data-cat', prod.category_id);
-      card.setAttribute('data-name', prod.name.toLowerCase());
-      card.setAttribute('data-sku', prod.sku.toLowerCase());
+      card.setAttribute('data-cat', String(prod.category_id ?? ''));
+      card.setAttribute('data-name', name.toLowerCase());
+      card.setAttribute('data-sku', sku.toLowerCase());
 
-      // Fetch barcode
-      const barRec = await db.barcodes.where('product_id').equals(prod.id).first();
-      const barcodeVal = barRec ? barRec.barcode : '';
+      const barcodeVal = barcodeByProduct.get(productId) || '';
       card.setAttribute('data-barcode', barcodeVal);
 
       card.innerHTML = `
-        <div style="height: 120px; flex-shrink: 0; border-radius: 8px; margin-bottom: 8px; background: url('${prod.image_data ? (prod.image_data.includes('?') ? prod.image_data : prod.image_data + '?v=2') : '/ai_images/juice_glass.jpg'}') center/cover no-repeat; border: 1px solid rgba(255, 255, 255, 0.05); display: flex; align-items: center; justify-content: center;">
-          ${!prod.image_data ? '<span style="font-size:24px; opacity:0.3;">📷</span>' : ''}
+        <div style="height: 120px; flex-shrink: 0; border-radius: 8px; margin-bottom: 8px; background: url('${imageData ? (imageData.includes('?') ? imageData : imageData + '?v=2') : '/ai_images/juice_glass.jpg'}') center/cover no-repeat; border: 1px solid rgba(255, 255, 255, 0.05); display: flex; align-items: center; justify-content: center;">
+          ${!imageData ? '<span style="font-size:24px; opacity:0.3;">📷</span>' : ''}
         </div>
         <div>
-          <h4>${prod.name}</h4>
-          <p class="sku">${prod.sku}</p>
+          <h4>${name}</h4>
+          <p class="sku">${sku}</p>
         </div>
         
         <div class="card-summary-tabs">
@@ -477,7 +506,7 @@ export class TillView {
         </div>
 
         <div class="card-footer">
-          <span class="price">KES ${prod.sell_price.toFixed(2)}</span>
+          <span class="price">KES ${sellPrice.toFixed(2)}</span>
           <span class="stock ${stock <= 10 && !prod.is_service ? 'low' : ''}">
             ${prod.is_service ? 'Service' : stock + ' left'}
           </span>
@@ -485,10 +514,45 @@ export class TillView {
       `;
 
       card.addEventListener('click', () => {
-        this.addToCart(prod);
+        this.addToCart(normalizedProduct);
       });
-      grid.appendChild(card);
+      fragment.appendChild(card);
     }
+
+    grid.appendChild(fragment);
+  }
+
+  renderCategoryFilters(products, categories) {
+    const categoryFilters = document.getElementById('cat-filters');
+    if (!categoryFilters) return;
+
+    const usedCategoryIds = new Set(
+      products
+        .map(product => product.category_id)
+        .filter(categoryId => categoryId !== null && categoryId !== undefined && categoryId !== '')
+        .map(String)
+    );
+
+    const usedCategories = categories
+      .filter(category => usedCategoryIds.has(String(category.id)))
+      .sort((a, b) => String(a.name ?? a.id).localeCompare(String(b.name ?? b.id)));
+
+    const fragment = document.createDocumentFragment();
+    const allItemsChip = document.createElement('div');
+    allItemsChip.className = 'filter-chip active';
+    allItemsChip.dataset.cat = 'all';
+    allItemsChip.textContent = 'All Items';
+    fragment.appendChild(allItemsChip);
+
+    for (const category of usedCategories) {
+      const chip = document.createElement('div');
+      chip.className = 'filter-chip';
+      chip.dataset.cat = String(category.id);
+      chip.textContent = String(category.name ?? category.id);
+      fragment.appendChild(chip);
+    }
+
+    categoryFilters.replaceChildren(fragment);
   }
 
   async loadCustomerDropdown() {
@@ -507,7 +571,7 @@ export class TillView {
 
   filterCatalogue() {
     const query = document.getElementById('till-search').value.toLowerCase();
-    const activeCat = document.querySelector('.filter-chip.active').getAttribute('data-cat');
+    const activeCat = document.querySelector('#cat-filters .filter-chip.active')?.getAttribute('data-cat') || 'all';
     const cards = document.querySelectorAll('.product-card');
 
     cards.forEach(card => {
