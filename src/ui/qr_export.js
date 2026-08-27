@@ -251,8 +251,15 @@ export class QrToolsView {
     try {
       if (type === 'sales') {
         headers = ['Order Ref', 'Table', 'Total (KES)', 'Payment', 'Status', 'Date'];
-        const orders = await db.orders.where('timestamp').above(fromTs).toArray().catch(() => []);
-        rows = orders.map(o => [o.id || o.receipt_no || '-', o.table_name || '-', Number(o.total_amount || 0).toFixed(2), o.payment_method || '-', o.status || '-', new Date(o.timestamp).toLocaleString()]);
+        const sales = await db.sales.toArray().catch(() => []);
+        const filtered = sales.filter(s => new Date(s.sold_at).getTime() > fromTs);
+        const allPayments = await db.payments.toArray().catch(() => []);
+        const payMap = new Map(allPayments.map(p => [p.sale_id, p]));
+        rows = filtered.map(s => {
+          const pm = payMap.get(s.id);
+          const method = pm ? pm.method : 'CASH';
+          return [s.invoice_no || s.id, s.table_no || '-', Number(s.grand_total || 0).toFixed(2), method, s.status || '-', new Date(s.sold_at).toLocaleString()];
+        });
       } else if (type === 'inventory') {
         headers = ['SKU', 'Product Name', 'Category', 'UOM', 'Sell Price (KES)', 'Active'];
         const prods = await db.products.toArray();

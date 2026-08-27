@@ -51,6 +51,9 @@ export class FinanceView {
       '.chip { background: rgba(120,80,255,0.2); border: 1px solid rgba(120,80,255,0.35); border-radius: 20px; padding: 4px 10px; font-size: 11px; cursor: pointer; color: #c0a0ff; white-space: nowrap; }',
       '.chip:hover { background: rgba(120,80,255,0.4); }',
       '@media(max-width:768px){ .finance-shell{flex-direction:column;} .finance-right{min-width:unset;height:400px;} }',
+      '.fin-table th { padding: 10px 12px; border-bottom: 2px solid rgba(255,255,255,0.08); font-size: 11px; text-transform: uppercase; color: var(--text-secondary); }',
+      '.fin-table td { padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); }',
+      '.fin-table tr:hover { background: rgba(255,255,255,0.02); }',
       '</style>',
 
       '<div class="finance-shell">',
@@ -73,6 +76,25 @@ export class FinanceView {
       '      <div class="m-card blue"><h5>Cash Sales</h5><p class="m-val" id="fin-cash">KES 0</p></div>',
       '      <div class="m-card green"><h5>M-Pesa Sales</h5><p class="m-val" id="fin-mpesa">KES 0</p></div>',
       '      <div class="m-card orange"><h5>Total Orders</h5><p class="m-val" id="fin-count">0</p></div>',
+      '    </div>',
+      '    <div class="fin-card">',
+      '      <h3 style="margin:0 0 12px 0;font-size:15px;color:#fff;">👥 Cashier Sales Report</h3>',
+      '      <div style="overflow-x:auto;">',
+      '        <table class="fin-table" style="width:100%; border-collapse:collapse; text-align:left; font-size:13px;">',
+      '          <thead>',
+      '            <tr>',
+      '              <th>Cashier Name</th>',
+      '              <th style="text-align:center;">Transactions</th>',
+      '              <th style="text-align:right;">Total Sales</th>',
+      '            </tr>',
+      '          </thead>',
+      '          <tbody id="cashier-report-body">',
+      '            <tr>',
+      '              <td colspan="3" style="padding:16px;text-align:center;color:var(--text-secondary);">No data loaded yet.</td>',
+      '            </tr>',
+      '          </tbody>',
+      '        </table>',
+      '      </div>',
       '    </div>',
       '  </div>',
 
@@ -144,30 +166,60 @@ export class FinanceView {
     const endTs = new Date(endStr + 'T23:59:59').getTime();
 
     try {
-      const allOrders = await db.orders.toArray();
-      const orders = allOrders.filter(o => {
-        const ts = o.timestamp || 0;
-        return ts >= startTs && ts <= endTs && o.status === 'COMPLETED';
+      const allSales = await db.sales.toArray();
+      const sales = allSales.filter(s => {
+        const ts = new Date(s.sold_at).getTime() || 0;
+        return ts >= startTs && ts <= endTs && s.status === 'COMPLETED';
       });
 
-      let gross = 0, discounts = 0, cash = 0, mpesa = 0;
+      const allPayments = await db.payments.toArray();
+      const payMap = new Map(allPayments.map(p => [p.sale_id, p]));
 
-      for (const o of orders) {
-        gross += (o.total || 0);
-        discounts += (o.discount || 0);
-        const method = (o.payment_method || '').toUpperCase();
+      const shifts = await db.shifts.toArray();
+      const users = await db.users.toArray();
+      const userMap = new Map(users.map(u => [u.id, u]));
+      const shiftUserMap = new Map(shifts.map(sh => [sh.id, userMap.get(sh.user_id)]));
+
+      let gross = 0, discounts = 0, cash = 0, mpesa = 0, credit = 0, card = 0, airtel = 0, bank = 0;
+      const cashierSummary = {};
+
+      for (const s of sales) {
+        gross += (s.subtotal || s.grand_total || 0);
+        discounts += (s.discount || 0);
+        
+        const payment = payMap.get(s.id);
+        const method = payment ? (payment.method || '').toUpperCase() : '';
+        const amt = s.grand_total || 0;
+
         if (method === 'CASH') {
-          cash += Math.max(0, (o.total || 0) - (o.discount || 0));
+          cash += amt;
         } else if (method === 'MPESA') {
-          mpesa += Math.max(0, (o.total || 0) - (o.discount || 0));
+          mpesa += amt;
+        } else if (method === 'CREDIT') {
+          credit += amt;
+        } else if (['CARD_PAYSTACK', 'CARD'].includes(method)) {
+          card += amt;
+        } else if (['AIRTEL_PAYSTACK', 'AIRTEL'].includes(method)) {
+          airtel += amt;
+        } else if (['BANK_PAYSTACK', 'BANK'].includes(method)) {
+          bank += amt;
         } else if (method === 'SPLIT') {
-          cash += (o.split_cash || 0);
-          mpesa += (o.split_mpesa || 0);
+          cash += (s.split_cash || 0);
+          mpesa += (s.split_mpesa || 0);
         }
+
+        // Group by cashier
+        const cashier = shiftUserMap.get(s.shift_id);
+        const cashierName = cashier ? cashier.name : 'Owner / Manager';
+        if (!cashierSummary[cashierName]) {
+          cashierSummary[cashierName] = { count: 0, total: 0 };
+        }
+        cashierSummary[cashierName].count++;
+        cashierSummary[cashierName].total += amt;
       }
 
       const net = gross - discounts;
-      const fmt = v => 'KES ' + v.toLocaleString();
+      const fmt = v => 'KES ' + v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
       const set = (id, val) => {
         const el = document.getElementById(id);
@@ -179,10 +231,31 @@ export class FinanceView {
       set('fin-net', fmt(net));
       set('fin-cash', fmt(cash));
       set('fin-mpesa', fmt(mpesa));
-      set('fin-count', orders.length);
+      set('fin-count', sales.length);
 
-      this.currentMetrics = { net, gross, discounts, cash, mpesa, count: orders.length, startStr, endStr };
-      this.addAIMsg('Data loaded for ' + startStr + ' to ' + endStr + '. Found ' + orders.length + ' completed orders totalling KES ' + net.toLocaleString() + '. Ask me anything!');
+      // Render Cashier Table
+      const reportBody = document.getElementById('cashier-report-body');
+      if (reportBody) {
+        const rows = Object.entries(cashierSummary);
+        if (rows.length === 0) {
+          reportBody.innerHTML = `
+            <tr>
+              <td colspan="3" style="padding:16px;text-align:center;color:var(--text-secondary);">No cashier sales recorded in this date range.</td>
+            </tr>
+          `;
+        } else {
+          reportBody.innerHTML = rows.map(([name, summary]) => `
+            <tr>
+              <td style="font-weight: 600; color: #fff;">${name}</td>
+              <td style="text-align:center; color: var(--text-secondary);">${summary.count}</td>
+              <td style="text-align:right; font-weight: 700; color: var(--accent-green);">${fmt(summary.total)}</td>
+            </tr>
+          `).join('');
+        }
+      }
+
+      this.currentMetrics = { net, gross, discounts, cash, mpesa, count: sales.length, startStr, endStr };
+      this.addAIMsg('Financial details loaded for ' + startStr + ' to ' + endStr + '. Found ' + sales.length + ' completed sales transactions totalling KES ' + net.toLocaleString(undefined, { minimumFractionDigits: 2 }) + '. Ask me anything about this range!');
 
     } catch (err) {
       console.error('Finance load error:', err);
