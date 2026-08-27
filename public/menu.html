@@ -99,7 +99,73 @@
     var cart=[],products=[],categories={};
     var EMOJI={'chicken':'&#127831;','chips':'&#127fried;','fish':'&#128olean;','nyama':'&#129969;','pilau':'&#127834;','rice':'&#127834;','ugali':'&#129981;','samosa':'&#129695;','beer':'&#127866;','juice':'&#129411;','soda':'&#129408;','cola':'&#129408;','water':'&#128167;','whiskey':'&#129347;'};
     function gE(n){var l=n.toLowerCase();if(l.includes('chicken'))return'&#127831;';if(l.includes('fish')||l.includes('tilapia'))return'&#128olean;';if(l.includes('nyama')||l.includes('goat')||l.includes('pork'))return'&#129969;';if(l.includes('pilau')||l.includes('rice'))return'&#127834;';if(l.includes('ugali')||l.includes('sukuma'))return'&#129981;';if(l.includes('samosa'))return'&#129695;';if(l.includes('beer')||l.includes('tusker')||l.includes('guinness'))return'&#127866;';if(l.includes('juice'))return'&#129411;';if(l.includes('soda')||l.includes('cola')||l.includes('fanta'))return'&#129408;';if(l.includes('water'))return'&#128167;';if(l.includes('whiskey')||l.includes('wine')||l.includes('spirit'))return'&#127774;';if(l.includes('chips')||l.includes('fries'))return'&#127fried;';return'&#127859;';}
-    function loadMenu(){try{var req=indexedDB.open('POS_DB');req.onsuccess=function(e){var db=e.target.result;var stores=Array.from(db.objectStoreNames);if(!stores.includes('products')){renderFallback();return;}var tx=db.transaction(['products','categories'],'readonly');var cats={};tx.objectStore('categories').getAll().onsuccess=function(ce){ce.target.result.forEach(function(c){cats[c.id]=c.name;});categories=cats;};tx.objectStore('products').getAll().onsuccess=function(pe){products=pe.target.result.filter(function(p){return p.is_active!==0;});renderCategories();renderGrid('all');};};req.onerror=renderFallback;}catch(e){renderFallback();}}
+    function loadMenu(){
+      try {
+        var hash = window.location.hash || window.location.search;
+        if (hash && (hash.indexOf('m=') > -1 || hash.indexOf('#') > -1)) {
+          var encoded = '';
+          if (hash.indexOf('m=') > -1) {
+            encoded = hash.split('m=')[1].split('&')[0];
+          } else {
+            encoded = hash.substring(1);
+          }
+          if (encoded) {
+            try {
+              var jsonStr = decodeURIComponent(atob(encoded).split('').map(function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+              }).join(''));
+              var payload = JSON.parse(jsonStr);
+              if (payload && payload.p && payload.c) {
+                categories = payload.c;
+                products = payload.p.map(function(arr) {
+                  return {
+                    id: arr[0],
+                    sku: arr[1],
+                    name: arr[2],
+                    sell_price: arr[3],
+                    category_id: arr[4],
+                    uom: arr[5],
+                    image_data: arr[6]
+                  };
+                });
+                renderCategories();
+                renderGrid('all');
+                return;
+              }
+            } catch (e) {
+              console.error('Failed to parse menu data from URL:', e);
+            }
+          }
+        }
+        var req = indexedDB.open('POS_DB');
+        req.onsuccess = function(e) {
+          var db = e.target.result;
+          var stores = Array.from(db.objectStoreNames);
+          if (!stores.includes('products')) {
+            renderFallback();
+            return;
+          }
+          var tx = db.transaction(['products','categories'],'readonly');
+          var cats = {};
+          tx.objectStore('categories').getAll().onsuccess = function(ce) {
+            ce.target.result.forEach(function(c) {
+              cats[c.id] = c.name;
+            });
+            categories = cats;
+          };
+          tx.objectStore('products').getAll().onsuccess = function(pe) {
+            products = pe.target.result.filter(function(p) {
+              return p.is_active !== 0;
+            });
+            renderCategories();
+            renderGrid('all');
+          };
+        };
+        req.onerror = renderFallback;
+      } catch (e) {
+        renderFallback();
+      }
+    }
     function renderFallback(){products=[{id:1,name:'Grilled Chicken & Chips',sell_price:650,uom:'PLATE',category_id:1,image_data:'/ai_images/grilled_chicken.jpg'},{id:2,name:'Nyama Choma',sell_price:1200,uom:'KG',category_id:1,image_data:'/ai_images/nyama_choma.jpg'},{id:3,name:'Pilau Rice',sell_price:350,uom:'PLATE',category_id:1,image_data:'/ai_images/pilau_rice.jpg'},{id:4,name:'Coca-Cola 300ml',sell_price:100,uom:'BOTTLE',category_id:2,image_data:'/ai_images/coke_bottle.png'},{id:5,name:'Tusker Beer 500ml',sell_price:280,uom:'BOTTLE',category_id:3,image_data:'/ai_images/beer_glass.jpg'},{id:6,name:'Fresh Juice (glass)',sell_price:200,uom:'GLASS',category_id:2,image_data:'/ai_images/fresh_juice.jpg'}];categories={1:'Food & Meals',2:'Soft Drinks',3:'Beers & Ciders'};renderCategories();renderGrid('all');}
     function renderCategories(){var bar=document.getElementById('cat-bar');var used=[...new Set(products.map(function(p){return p.category_id;}))];used.forEach(function(cid){var chip=document.createElement('div');chip.className='cat-chip';chip.dataset.cat=cid;chip.textContent=categories[cid]||'General';chip.onclick=function(){document.querySelectorAll('.cat-chip').forEach(function(c){c.classList.remove('active');});chip.classList.add('active');renderGrid(cid);};bar.appendChild(chip);});bar.querySelector('[data-cat=all]').onclick=function(){document.querySelectorAll('.cat-chip').forEach(function(c){c.classList.remove('active');});bar.querySelector('[data-cat=all]').classList.add('active');renderGrid('all');};}
     function renderGrid(cf){var grid=document.getElementById('menu-grid');var filtered=cf==='all'?products:products.filter(function(p){return String(p.category_id)===String(cf);});grid.innerHTML='';if(!filtered.length){grid.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:40px;color:#a08060;">No items.</div>';return;}filtered.forEach(function(p){var card=document.createElement('div');card.className='menu-card';var imgHtml=p.image_data?'<img src="'+p.image_data+'?v=2" alt="'+p.name+'" />'+'':'<div class="no-img">&#127859;</div>';card.innerHTML=imgHtml+'<div class="card-body"><div class="card-cat">'+(categories[p.category_id]||'General')+'</div><div class="card-name">'+p.name+'</div><div><span class="card-price">KES '+p.sell_price.toFixed(2)+'</span><span class="card-uom">/ '+p.uom+'</span></div><button class="card-add-btn" data-pid="'+p.id+'">+ Add to Order</button></div>';card.querySelector('[data-pid]').onclick=function(ev){addToCart(p.id,ev.target);};grid.appendChild(card);});}

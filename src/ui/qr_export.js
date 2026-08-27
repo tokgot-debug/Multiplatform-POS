@@ -41,7 +41,7 @@ export class QrToolsView {
       '</div>',
       '</div>',
       '<div style="flex:1;min-width:220px;">',
-      '<div class="discount-field"><label>Menu URL</label><input type="text" id="qr-url-input" value="http://localhost:3005/menu.html" style="font-size:12px;"></div>',
+      '<div class="discount-field"><label>Menu URL</label><input type="text" id="qr-url-input" value="' + (window.location.origin + '/menu.html') + '" style="font-size:12px;"></div>',
       '<div class="discount-field"><label>QR Size</label><select id="qr-size-sel"><option value="160">Small</option><option value="220" selected>Medium</option><option value="300">Large</option></select></div>',
       '<button class="discount-save-btn" id="qr-regen-btn" style="width:100%;">\u21BB Regenerate</button>',
       '<div style="margin-top:20px;background:rgba(200,130,42,0.08);border:1px solid rgba(200,130,42,0.2);border-radius:10px;padding:16px;">',
@@ -143,12 +143,50 @@ export class QrToolsView {
     }
   }
 
-  // ── QR CODE ──
-  generateQR() {
+  async generateQR() {
     const urlEl = document.getElementById('qr-url-input');
     const sizeEl = document.getElementById('qr-size-sel');
-    const url = urlEl ? urlEl.value.trim() : 'http://localhost:3005/menu.html';
+    const inputUrl = urlEl ? urlEl.value.trim() : (window.location.origin + '/menu.html');
     const size = parseInt(sizeEl ? sizeEl.value : '220');
+
+    // Fetch and encode menu data
+    let encodedUrl = inputUrl;
+    try {
+      const activeProducts = await db.products.where('is_active').equals(1).toArray();
+      const categories = await db.categories.toArray();
+      
+      const categoryMap = {};
+      categories.forEach(c => {
+        categoryMap[c.id] = c.name;
+      });
+
+      // Map into a compact format: [id, sku, name, sell_price, category_id, uom, image_data]
+      const serializedProducts = activeProducts.map(p => [
+        p.id,
+        p.sku,
+        p.name,
+        p.sell_price,
+        p.category_id,
+        p.uom,
+        p.image_data || ''
+      ]);
+
+      const payload = {
+        c: categoryMap,
+        p: serializedProducts
+      };
+
+      const jsonStr = JSON.stringify(payload);
+      const utf8B64 = btoa(encodeURIComponent(jsonStr).replace(/%([0-9A-F]{2})/g, (match, p1) => {
+        return String.fromCharCode(parseInt(p1, 16));
+      }));
+
+      // Set as hash fragment so we don't hit size limits on server HTTP requests
+      const baseUrl = inputUrl.split('#')[0].split('?')[0];
+      encodedUrl = `${baseUrl}#m=${utf8B64}`;
+    } catch (err) {
+      console.error('Error encoding menu data into QR URL:', err);
+    }
 
     const renderQR = () => {
       const wrap = document.getElementById('qr-actual');
@@ -156,9 +194,9 @@ export class QrToolsView {
       wrap.innerHTML = '';
       try {
         new QRCode(wrap, {
-          text: url, width: size, height: size,
+          text: encodedUrl, width: size, height: size,
           colorDark: '#1a0c04', colorLight: '#ffffff',
-          correctLevel: QRCode.CorrectLevel.H
+          correctLevel: QRCode.CorrectLevel.L // Low error correction to allow larger payloads in the same size
         });
       } catch (e) {
         wrap.innerHTML = '<div style="width:' + size + 'px;height:' + size + 'px;display:flex;align-items:center;justify-content:center;background:#f5f0e8;border-radius:8px;font-size:13px;color:#666;text-align:center;padding:20px;">QR library loading...</div>';
