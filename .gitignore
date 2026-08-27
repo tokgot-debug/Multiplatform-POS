@@ -3,3 +3,7 @@ dist/
 .DS_Store
 .env
 .env.*
+
+.firebase/
+firebase-debug.log
+__pycache__/
