@@ -199,7 +199,11 @@ function handleSyncStatusUpdate(status, queueCount) {
 async function populatePinUsers() {
   // Migrate legacy Cashier database records to Waiter/Waitress
   try {
-    await db.users.where('role').equals('Cashier').modify({ role: 'Waiter/Waitress' });
+    await db.users.toCollection().modify(usr => {
+      if (usr.role === 'Cashier') {
+        usr.role = 'Waiter/Waitress';
+      }
+    });
   } catch (e) {
     console.warn('User roles migration skipped:', e);
   }
@@ -229,7 +233,8 @@ async function populatePinUsers() {
   users.forEach((usr) => {
     const option = document.createElement('option');
     option.value = usr.id;
-    option.textContent = `${usr.name} (${usr.role})`;
+    const roleText = usr.role === 'Cashier' ? 'Waiter/Waitress' : usr.role;
+    option.textContent = `${usr.name} (${roleText})`;
     select.appendChild(option);
   });
   
