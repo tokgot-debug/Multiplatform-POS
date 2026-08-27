@@ -197,6 +197,13 @@ function handleSyncStatusUpdate(status, queueCount) {
 }
 
 async function populatePinUsers() {
+  // Migrate legacy Cashier database records to Waiter/Waitress
+  try {
+    await db.users.where('role').equals('Cashier').modify({ role: 'Waiter/Waitress' });
+  } catch (e) {
+    console.warn('User roles migration skipped:', e);
+  }
+
   const users = await db.users.where('status').equals('ACTIVE').toArray();
   const select = document.getElementById('pin-user-select');
   
