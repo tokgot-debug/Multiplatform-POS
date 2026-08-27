@@ -13,6 +13,7 @@ window.addEventListener('unhandledrejection', function(e) {
 
 import { db } from './db/schema';
 import { seedDatabase, logAuditEvent } from './db/index';
+import { migrateRestaurantCatalogue } from './db/restaurant-catalogue';
 import { SyncManager } from './services/sync';
 import { TillView } from './ui/till';
 import { InventoryView } from './ui/inventory';
@@ -54,6 +55,7 @@ async function initApp() {
     // 1. Open and Seed Database
     await db.open();
     await seedDatabase();
+    await migrateRestaurantCatalogue();
   } catch (dbError) {
     console.error('Database opening failed:', dbError);
     const errorBanner = document.createElement('div');
