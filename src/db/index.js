@@ -417,11 +417,12 @@ export async function seedDatabase() {
     // ── SERVICES ─────────────────────────────────────────────────
     {
       id: 'prod-table-service',
-      tenant_id: tenantId, sku: 'SRV-TBL-01', name: 'Table Service Charge',
+      tenant_id: tenantId, sku: 'SRV-TBL-01', name: 'VIP Service Charge',
       category_id: 'cat-services', uom: 'CHARGE', is_batch_tracked: 0, is_service: 1,
       tax_code: 'E', item_cls_cd: '73151600', item_ty_cd: '2',
       pkg_unit_cd: 'EA', qty_unit_cd: 'U', origin_country: 'KE',
       sell_price: 100.00, cost_price: 0.00,
+      image_data: '/ai_images/vip_service.jpg',
       etims_registered_at: new Date().toISOString(), is_active: 1, version: 1
     },
     {

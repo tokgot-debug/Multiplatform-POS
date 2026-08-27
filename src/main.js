@@ -208,6 +208,8 @@ async function populatePinUsers() {
     });
     // Migrate Corkage Fee price and image
     await db.products.update('prod-corkage', { sell_price: 3000.00, image_data: '/ai_images/corkage.jpg' });
+    // Migrate Table Service Charge to VIP Service Charge and image
+    await db.products.update('prod-table-service', { name: 'VIP Service Charge', image_data: '/ai_images/vip_service.jpg' });
   } catch (e) {
     console.warn('Database startup migrations skipped:', e);
   }
