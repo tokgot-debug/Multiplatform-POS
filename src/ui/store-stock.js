@@ -7,18 +7,84 @@ export class StoreStockView {
     this.container = container;
     this.activeTab = 'inventory'; // 'inventory' | 'requests'
     window.storeStockViewInstance = this;
+    this.pollerInterval = null;
   }
 
   async load() {
     window.storeStockViewInstance = this;
+    if (this.pollerInterval) {
+      clearInterval(this.pollerInterval);
+    }
     this.render();
     await this.populateData();
+    this.startRequisitionPoller();
+  }
+
+  startRequisitionPoller() {
+    const updateAlertBanner = async () => {
+      try {
+        const pendingCount = await db.requisitions.where('status').equals('PENDING').count();
+        const banner = document.getElementById('storekeeper-req-alert');
+        const text = document.getElementById('storekeeper-req-alert-text');
+        
+        if (pendingCount > 0) {
+          if (banner) {
+            banner.style.display = 'flex';
+          }
+          if (text) {
+            text.textContent = `There are ${pendingCount} pending stock request(s) from the House counter. Awaiting Supervisor approval.`;
+          }
+          
+          const lastLoggedCount = parseInt(localStorage.getItem('last_requisition_count') || '0');
+          if (pendingCount > lastLoggedCount) {
+            showNotification(`🔔 Requisition Alert: ${pendingCount} pending stock requests from the House!`, 'warning');
+            
+            // Audio alert synthesis
+            if (typeof AudioContext !== 'undefined' || typeof webkitAudioContext !== 'undefined') {
+              const AudioCtx = window.AudioContext || window.webkitAudioContext;
+              const ctx = new AudioCtx();
+              const osc = ctx.createOscillator();
+              const gain = ctx.createGain();
+              osc.type = 'sine';
+              osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+              gain.gain.setValueAtTime(0.08, ctx.currentTime);
+              gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+              osc.connect(gain);
+              gain.connect(ctx.destination);
+              osc.start();
+              osc.stop(ctx.currentTime + 0.35);
+            }
+          }
+          localStorage.setItem('last_requisition_count', String(pendingCount));
+        } else {
+          if (banner) banner.style.display = 'none';
+          localStorage.setItem('last_requisition_count', '0');
+        }
+      } catch (err) {
+        console.error('Error in requisition poller:', err);
+      }
+    };
+
+    updateAlertBanner();
+    this.pollerInterval = setInterval(updateAlertBanner, 4000);
   }
 
   render() {
     this.container.innerHTML = `
       <div style="padding: 24px; color: var(--text-primary); max-width: 1200px; margin: 0 auto;">
         
+        <!-- Storekeeper Requisition Alert Banner -->
+        <div id="storekeeper-req-alert" style="display: none; background: rgba(245, 158, 11, 0.15); border: 1.5px solid #F59E0B; border-radius: 12px; padding: 16px 20px; margin-bottom: 24px; align-items: center; justify-content: space-between; font-family: var(--font-main); box-shadow: var(--glass-shadow);">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <span style="font-size: 24px;">🔔</span>
+            <div>
+              <strong style="color: #fff; font-size: 14px;">Pending Requisitions Alert</strong>
+              <div id="storekeeper-req-alert-text" style="color: var(--text-secondary); font-size: 12px; margin-top: 2px;">There are pending stock requests from the House counter.</div>
+            </div>
+          </div>
+          <button id="btn-view-alerts-tab" style="background: #F59E0B; color: #000; border: none; padding: 8px 16px; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s;">View Requests</button>
+        </div>
+
         <!-- Top Tabs & Search -->
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
           <div style="display: flex; background: var(--bg-element); border-radius: 8px; padding: 4px;">
@@ -160,6 +226,14 @@ export class StoreStockView {
       this.activeTab = 'requests';
       this.load();
     });
+
+    const alertBtn = document.getElementById('btn-view-alerts-tab');
+    if (alertBtn) {
+      alertBtn.addEventListener('click', () => {
+        this.activeTab = 'requests';
+        this.load();
+      });
+    }
 
     document.getElementById('store-search').addEventListener('input', () => this.populateData());
 
@@ -521,10 +595,10 @@ export class StoreStockView {
 
   async populateRequests() {
     const list = document.getElementById('requests-list');
-    const reqs = await db.requisitions.filter(r => r.status === 'PENDING' || r.status === 'APPROVED').toArray();
+    const reqs = await db.requisitions.where('status').equals('PENDING').toArray();
     
     if (reqs.length === 0) {
-      list.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 40px;">No pending or approved requests.</div>`;
+      list.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 40px;">No pending requisitions.</div>`;
       return;
     }
 
@@ -542,23 +616,18 @@ export class StoreStockView {
         </div>
       `).join('');
 
-      let actionButtonHtml = '';
-      if (req.status === 'PENDING') {
-        actionButtonHtml = `<button class="btn-approve-req" data-id="${req.id}" style="background: var(--accent-amber); color: #000; border: none; padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: 700; cursor: pointer;">✔️ Approve Request</button>`;
-      } else if (req.status === 'APPROVED') {
-        actionButtonHtml = `<button class="btn-issue-req" data-id="${req.id}" style="background: #10b981; color: #fff; border: none; padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: 700; cursor: pointer;">📦 Issue & Give Stock</button>`;
-      }
+      const actionButtonHtml = `<button class="btn-approve-req" data-id="${req.id}" style="background: var(--accent-amber); color: #000; border: none; padding: 8px 14px; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s;">✔️ Approve &amp; Transfer Stock</button>`;
 
       html.push(`
-        <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
-          <div style="display: flex; justify-content: space-between; margin-bottom: 12px; align-items: center;">
+        <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; margin-bottom: 16px; box-shadow: var(--glass-shadow);">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 14px; align-items: center; flex-wrap: wrap; gap: 12px;">
             <div>
               <div style="font-size: 12px; color: var(--text-muted);">Request ID: ${req.id.split('-')[0].toUpperCase()} • ${new Date(req.created_at).toLocaleString()}</div>
-              <div style="font-size: 11px; margin-top: 2px; font-weight: 700; color: ${req.status === 'APPROVED' ? '#10b981' : '#e8a535'};">STATUS: ${req.status}</div>
+              <div style="font-size: 11px; margin-top: 4px; font-weight: 700; color: #e8a535; text-transform: uppercase;">STATUS: ${req.status}</div>
             </div>
             ${actionButtonHtml}
           </div>
-          <div style="border-top: 1px solid var(--border-color); padding-top: 12px;">
+          <div style="border-top: 1px solid var(--border-color); padding-top: 12px; display: flex; flex-direction: column; gap: 4px;">
             ${linesHtml}
           </div>
         </div>
@@ -569,15 +638,8 @@ export class StoreStockView {
 
     list.querySelectorAll('.btn-approve-req').forEach(btn => {
       btn.addEventListener('click', async (e) => {
-        const reqId = e.target.getAttribute('data-id');
+        const reqId = e.currentTarget.getAttribute('data-id');
         await this.approveRequisition(reqId);
-      });
-    });
-
-    list.querySelectorAll('.btn-issue-req').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        const reqId = e.target.getAttribute('data-id');
-        await this.issueApprovedStock(reqId);
       });
     });
   }
@@ -589,28 +651,7 @@ export class StoreStockView {
       return;
     }
 
-    if (!confirm('Approve this stock requisition request?')) return;
-    
-    await db.requisitions.update(reqId, { status: 'APPROVED', approved_by: state.currentUser?.id || 'supervisor' });
-    await logAuditEvent(
-      state.currentTenant?.id || 't1',
-      state.currentUser?.id || 'anonymous',
-      'APPROVE_REQUISITION',
-      'REQUISITION',
-      reqId
-    );
-    showNotification('Requisition approved. Awaiting Store Keeper dispatch.', 'success');
-    await this.load();
-  }
-
-  async issueApprovedStock(reqId) {
-    const role = state.currentUser?.role;
-    if (role !== 'Store Keeper' && role !== 'Store Manager' && role !== 'Owner') {
-      showNotification('Access Denied: Only Store Keepers, Managers, or Owners can issue/give stock.', 'error');
-      return;
-    }
-
-    if (!confirm('Physically issue and transfer this stock to the House?')) return;
+    if (!confirm('Approve this stock requisition and transfer stock to House counter?')) return;
     
     const lines = await db.req_lines.where('req_id').equals(reqId).toArray();
     
@@ -629,8 +670,8 @@ export class StoreStockView {
           unit_cost: 0,
           ref_type: 'REQUISITION',
           ref_id: reqId,
-          reason: 'Issued to House',
-          created_by: state.currentUser?.id || 'storekeeper',
+          reason: 'Requisition Issued to House',
+          created_by: state.currentUser?.id || 'supervisor',
           created_at: new Date().toISOString()
         });
 
@@ -647,24 +688,28 @@ export class StoreStockView {
           unit_cost: 0,
           ref_type: 'REQUISITION',
           ref_id: reqId,
-          reason: 'Received from Store',
-          created_by: state.currentUser?.id || 'storekeeper',
+          reason: 'Requisition Received from Store',
+          created_by: state.currentUser?.id || 'supervisor',
           created_at: new Date().toISOString()
         });
       }
 
-      await db.requisitions.update(reqId, { status: 'ISSUED', issued_by: state.currentUser?.id || 'storekeeper' });
+      await db.requisitions.update(reqId, { 
+        status: 'APPROVED', 
+        approved_by: state.currentUser?.id || 'supervisor',
+        issued_by: state.currentUser?.id || 'supervisor'
+      });
     });
 
     await logAuditEvent(
       state.currentTenant?.id || 't1',
       state.currentUser?.id || 'anonymous',
-      'DISPATCH_REQUISITION',
+      'APPROVE_REQUISITION',
       'REQUISITION',
       reqId
     );
 
-    showNotification('Requisition stock successfully issued & transferred to House.', 'success');
+    showNotification('Requisition approved and stock transferred to House successfully!', 'success');
     await this.load();
   }
 }
