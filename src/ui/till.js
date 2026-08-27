@@ -483,6 +483,7 @@ export class TillView {
       }
     }
 
+    const categoryMap = new Map(categories.map(c => [String(c.id), c.name]));
     const fragment = document.createDocumentFragment();
     
     for (const prod of products) {
@@ -495,10 +496,14 @@ export class TillView {
       const stock = houseStockByProduct.get(productId) || 0;
       const normalizedProduct = { ...prod, name, sku, sell_price: sellPrice };
       
+      const rawCatName = categoryMap.get(String(prod.category_id)) || String(prod.source_category || prod.category_id || '');
+      const canonicalCatName = getCanonicalCategoryName(rawCatName);
+
       const card = document.createElement('div');
       card.className = `product-card ${prod.is_batch_tracked ? 'batch-tracked' : ''}`;
       card.setAttribute('data-id', prod.id);
       card.setAttribute('data-cat', String(prod.category_id ?? ''));
+      card.setAttribute('data-canonical-cat', canonicalCatName);
       card.setAttribute('data-name', name.toLowerCase());
       card.setAttribute('data-sku', sku.toLowerCase());
 
@@ -617,7 +622,8 @@ export class TillView {
   filterCatalogue() {
     const query = document.getElementById('till-search').value.toLowerCase();
     const activeChip = document.querySelector('#cat-filters .filter-chip.active');
-    const activeCat = activeChip?.getAttribute('data-cat') || 'all';
+    const activeCat = activeChip?.getAttribute('data-cat') || activeChip?.dataset.catName || 'all';
+    const activeCatName = activeChip?.dataset.catName || null;
     const activeCatIds = activeChip?.getAttribute('data-cat-ids') ? activeChip.getAttribute('data-cat-ids').split(',') : null;
     const cards = document.querySelectorAll('.product-card');
 
@@ -626,9 +632,12 @@ export class TillView {
       const sku = card.getAttribute('data-sku');
       const bar = card.getAttribute('data-barcode');
       const cat = card.getAttribute('data-cat');
+      const canonicalCat = card.getAttribute('data-canonical-cat');
 
       const matchesQuery = !query || name.includes(query) || sku.includes(query) || bar.includes(query);
-      const matchesCat = activeCat === 'all' || (activeCatIds ? activeCatIds.includes(cat) : cat === activeCat);
+      const matchesCat = activeCat === 'all' 
+        || (activeCatName && canonicalCat === activeCatName)
+        || (activeCatIds ? activeCatIds.includes(cat) : cat === activeCat);
 
       if (matchesQuery && matchesCat) {
         card.classList.remove('hidden');
