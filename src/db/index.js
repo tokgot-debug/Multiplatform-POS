@@ -430,7 +430,7 @@ export async function seedDatabase() {
       category_id: 'cat-services', uom: 'CHARGE', is_batch_tracked: 0, is_service: 1,
       tax_code: 'E', item_cls_cd: '73151600', item_ty_cd: '2',
       pkg_unit_cd: 'EA', qty_unit_cd: 'U', origin_country: 'KE',
-      sell_price: 500.00, cost_price: 0.00,
+      sell_price: 3000.00, cost_price: 0.00,
       etims_registered_at: new Date().toISOString(), is_active: 1, version: 1
     }
   ]);
