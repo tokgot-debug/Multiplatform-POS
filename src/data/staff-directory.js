@@ -67,7 +67,12 @@ export const STAFF_MEMBERS = [
   { name: 'Wycliffe Otieno', phone: '0759230579' },
   { name: 'Tamia Wairimu', phone: '0708579470' },
   { name: 'Mohammed', phone: '0703524621' },
-  { name: 'Maxim Simiyu', phone: '0721906744' }
+  { name: 'Maxim Simiyu', phone: '0721906744' },
+  { name: 'Authorized Staff', phone: '0757680252' },
+  { name: 'Authorized Staff', phone: '0798906070' },
+  { name: 'Authorized Staff', phone: '0114345556' },
+  { name: 'Authorized Staff', phone: '0708241098' },
+  { name: 'Authorized Staff', phone: '0722391786' }
 ];
 
 export function normalizePhoneNumber(raw) {
