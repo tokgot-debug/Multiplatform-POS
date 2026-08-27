@@ -96,13 +96,27 @@ async function initApp() {
       'prod-chicken-chips': '/ai_images/grilled_chicken.jpg',
       'prod-pilau': '/ai_images/pilau_rice.jpg',
       'prod-ugali-stew': '/ai_images/ugali_nyama.jpg',
-      'prod-samosa': '/ai_images/beef_samosas.jpg'
+      'prod-samosa': '/ai_images/beef_samosas.jpg',
+      'prod-staff-discount': '/ai_images/discount_badge.jpg'
     };
     for (const p of prods) {
       if (imageMap[p.id] && p.image_data !== imageMap[p.id]) {
         p.image_data = imageMap[p.id];
         await db.products.put(p);
       }
+    }
+    const staffDisc = await db.products.get('prod-staff-discount');
+    if (!staffDisc) {
+      await db.products.add({
+        id: 'prod-staff-discount',
+        tenant_id: 'tenant-01', sku: 'SRV-DIS-01', name: 'Staff 20% Discount',
+        category_id: 'cat-services', uom: 'SERVICE', is_batch_tracked: 0, is_service: 1,
+        tax_code: 'E', item_cls_cd: '73151600', item_ty_cd: '2',
+        pkg_unit_cd: 'EA', qty_unit_cd: 'U', origin_country: 'KE',
+        sell_price: 0.00, cost_price: 0.00,
+        image_data: '/ai_images/discount_badge.jpg',
+        etims_registered_at: new Date().toISOString(), is_active: 1, version: 1
+      });
     }
   } catch(e) {}
   

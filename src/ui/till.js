@@ -2,6 +2,7 @@ import { db } from '../db/schema';
 import { logAuditEvent, getHouseStock } from '../db/index';
 import { state, showNotification } from '../context';
 import { MpesaService } from '../services/mpesa';
+import { isStaffPhoneNumber } from '../data/staff-directory';
 
 export function getCanonicalCategoryName(rawName) {
   if (!rawName) return 'Other';
@@ -126,6 +127,10 @@ export class TillView {
             <div class="summary-row" id="summary-vip-row" style="display:none;color:var(--accent-amber);">
               <span>VIP Surcharge (30%)</span>
               <span id="summary-vip-charge">KES 0.00</span>
+            </div>
+            <div class="summary-row" id="summary-staff-disc-row" style="display:none;color:var(--accent-green);">
+              <span>Staff Discount (-20%)</span>
+              <span id="summary-staff-disc-amount">-KES 0.00</span>
             </div>
             <div class="summary-row">
               <span>Discount</span>
@@ -284,7 +289,9 @@ export class TillView {
 
               <!-- Paystack Airtel inputs -->
               <div class="checkout-inputs hidden" id="payment-inputs-airtel">
-                <label style="font-size:11px;color:var(--text-secondary)">Customer Email Address (Required)</label>
+                <label style="font-size:11px;color:var(--text-secondary)">Airtel Mobile Number</label>
+                <input type="text" id="pay-airtel-phone" placeholder="e.g. 0769855115 or 0712345678">
+                <label style="font-size:11px;color:var(--text-secondary);margin-top:4px;display:block;">Customer Email Address (Required)</label>
                 <input type="email" id="pay-airtel-email" placeholder="customer@example.com" value="customer@titanium.com">
                 <button class="primary-btn" id="pay-trigger-airtel-paystack" style="margin-top:8px;background:#c8832a;color:#fff;border:none;">Launch Airtel Money 🔴</button>
                 <div id="airtel-paystack-status" class="hidden" style="margin-top:8px;text-align:center;font-size:12px;">
@@ -511,6 +518,7 @@ export class TillView {
       card.setAttribute('data-barcode', barcodeVal);
 
       const isVipItem = prod.id === 'prod-table-service';
+      const isStaffDiscountItem = prod.id === 'prod-staff-discount';
       card.innerHTML = `
         <div style="height: 120px; flex-shrink: 0; border-radius: 8px; margin-bottom: 8px; background: url('${imageData ? (imageData.includes('?') ? imageData : imageData + '?v=2') : '/ai_images/juice_glass.jpg'}') center/cover no-repeat; border: 1px solid rgba(255, 255, 255, 0.05); display: flex; align-items: center; justify-content: center;">
           ${!imageData ? '<span style="font-size:24px; opacity:0.3;">📷</span>' : ''}
@@ -531,7 +539,7 @@ export class TillView {
         </div>
 
         <div class="card-footer">
-          <span class="price">${isVipItem ? 'VIP +30%' : 'KES ' + sellPrice.toFixed(2)}</span>
+          <span class="price">${isStaffDiscountItem ? 'Staff -20%' : (isVipItem ? 'VIP +30%' : 'KES ' + sellPrice.toFixed(2))}</span>
           <span class="stock ${stock <= 10 && !prod.is_service ? 'low' : ''}">
             ${prod.is_service ? 'Service' : stock + ' left'}
           </span>
@@ -710,6 +718,26 @@ export class TillView {
       return;
     }
 
+    // Staff 20% Discount: toggle on/off, always qty 1
+    if (product.id === 'prod-staff-discount') {
+      if (existingIndex > -1) {
+        this.cart.splice(existingIndex, 1);
+        showNotification('Staff 20% Discount removed', 'warning');
+        this.updateCartUI();
+        return;
+      }
+      this.cart.unshift({
+        product,
+        qty: 1,
+        discount_amount: 0,
+        discount_percent: 20,
+        batch: null
+      });
+      showNotification('Staff 20% Discount added', 'success');
+      this.updateCartUI();
+      return;
+    }
+
     if (existingIndex > -1) {
       this.cart[existingIndex].qty += 1;
     } else {
@@ -750,6 +778,7 @@ export class TillView {
       div.className = 'cart-item';
       
       const isVipCartItem = item.product.id === 'prod-table-service';
+      const isStaffDiscountCartItem = item.product.id === 'prod-staff-discount';
       const rate = this.selectedCustomer.price_tier === 'WHOLESALE' ? item.product.cost_price * 1.15 : item.product.sell_price;
       const total = rate * item.qty;
 
@@ -766,13 +795,14 @@ export class TillView {
           </div>
         ` : ''}
         <div class="cart-item-details">
-          ${isVipCartItem ? '<span style="font-size:11px;color:var(--accent-amber);font-weight:700;">+30% Surcharge</span>' : `
+          ${isVipCartItem ? '<span style="font-size:11px;color:var(--accent-amber);font-weight:700;">+30% Surcharge</span>' :
+            (isStaffDiscountCartItem ? '<span style="font-size:11px;color:var(--accent-green);font-weight:700;">-20% Staff Disc</span>' : `
           <div class="cart-item-qty-control">
             <button class="qty-btn dec" data-idx="${index}">-</button>
             <span class="qty-val">${item.qty}</span>
             <button class="qty-btn inc" data-idx="${index}">+</button>
-          </div>`}
-          <span class="cart-item-price">${isVipCartItem ? 'VIP' : 'KES ' + total.toFixed(2)}</span>
+          </div>`)}
+          <span class="cart-item-price">${isVipCartItem ? 'VIP' : (isStaffDiscountCartItem ? '-20%' : 'KES ' + total.toFixed(2))}</span>
         </div>
       `;
 
@@ -783,7 +813,7 @@ export class TillView {
         this.updateCartUI();
       });
 
-      // Quantity increment/decrement listener (VIP items have no qty controls)
+      // Quantity increment/decrement listener (VIP and Staff Discount items have no qty controls)
       const decBtn = div.querySelector('.qty-btn.dec');
       const incBtn = div.querySelector('.qty-btn.inc');
       if (decBtn) {
@@ -816,19 +846,20 @@ export class TillView {
     let discount = 0;
     let tax = 0;
     let vipSurcharge = 0;
+    let staffDiscount = 0;
 
-    // Check if VIP Service Charge is in the cart
+    // Check special items in cart
     const hasVip = this.cart.some(item => item.product.id === 'prod-table-service');
+    const hasStaffDiscount = this.cart.some(item => item.product.id === 'prod-staff-discount');
 
-    // First pass: compute subtotal of NON-VIP items only
+    // First pass: compute subtotal of NON-special items
     this.cart.forEach(item => {
-      if (item.product.id === 'prod-table-service') return; // Skip VIP item itself
+      if (item.product.id === 'prod-table-service' || item.product.id === 'prod-staff-discount') return;
       const price = this.selectedCustomer.price_tier === 'WHOLESALE' ? item.product.cost_price * 1.15 : item.product.sell_price;
       const itemSub = price * item.qty;
       subtotal += itemSub;
       
-      // Calculate tax components based on tax band settings
-      let rate = 0.16; // Standard Standard (A)
+      let rate = 0.16;
       if (item.product.tax_code === 'B') rate = 0.08;
       else if (item.product.tax_code === 'C' || item.product.tax_code === 'E') rate = 0.00;
 
@@ -836,29 +867,36 @@ export class TillView {
       tax += itemTax;
     });
 
-    // Apply VIP 30% surcharge on the subtotal of other items
+    // Apply VIP 30% surcharge & Staff 20% discount on subtotal
     if (hasVip) {
       vipSurcharge = subtotal * 0.30;
     }
+    if (hasStaffDiscount) {
+      staffDiscount = subtotal * 0.20;
+    }
 
-    const total = subtotal + vipSurcharge - discount;
+    const total = Math.max(0, subtotal + vipSurcharge - staffDiscount - discount);
 
     document.getElementById('summary-subtotal').innerText = `KES ${subtotal.toFixed(2)}`;
+    
     const vipRow = document.getElementById('summary-vip-row');
     if (vipRow) {
-      if (hasVip) {
-        vipRow.style.display = '';
-        document.getElementById('summary-vip-charge').innerText = `KES ${vipSurcharge.toFixed(2)}`;
-      } else {
-        vipRow.style.display = 'none';
-      }
+      vipRow.style.display = hasVip ? '' : 'none';
+      if (hasVip) document.getElementById('summary-vip-charge').innerText = `KES ${vipSurcharge.toFixed(2)}`;
     }
+
+    const staffRow = document.getElementById('summary-staff-disc-row');
+    if (staffRow) {
+      staffRow.style.display = hasStaffDiscount ? '' : 'none';
+      if (hasStaffDiscount) document.getElementById('summary-staff-disc-amount').innerText = `-KES ${staffDiscount.toFixed(2)}`;
+    }
+
     document.getElementById('summary-discount').innerText = `KES ${discount.toFixed(2)}`;
     document.getElementById('summary-tax').innerText = `KES ${tax.toFixed(2)}`;
     document.getElementById('summary-total').innerText = `KES ${total.toFixed(2)}`;
 
     // Store calculations on class reference
-    this.totals = { subtotal, discount, tax, total, vipSurcharge };
+    this.totals = { subtotal, discount, tax, total, vipSurcharge, staffDiscount };
   }
 
   openCheckoutModal() {
@@ -982,8 +1020,32 @@ export class TillView {
     document.getElementById('pay-cash-change').innerText = `KES ${change.toFixed(2)}`;
   }
 
+  validateStaffDiscountPhone(phone) {
+    const hasStaffDiscount = this.cart.some(item => item.product.id === 'prod-staff-discount');
+    if (!hasStaffDiscount) return true;
+
+    const staffMember = isStaffPhoneNumber(phone);
+    if (staffMember) {
+      showNotification(`✅ Staff Verified: ${staffMember.name} (${staffMember.phone})`, 'success');
+      return true;
+    } else {
+      showNotification(`❌ Phone number "${phone || 'N/A'}" is NOT an authorized staff number. Staff 20% discount rejected and removed. Charging normal price.`, 'error');
+      const idx = this.cart.findIndex(item => item.product.id === 'prod-staff-discount');
+      if (idx > -1) {
+        this.cart.splice(idx, 1);
+        this.updateCartUI();
+        this.originalDue = this.totals.total;
+        document.getElementById('checkout-due-amount').innerText = `KES ${this.totals.total.toFixed(2)}`;
+      }
+      return false;
+    }
+  }
+
   async triggerMpesaStk() {
     const phone = document.getElementById('pay-mpesa-phone').value;
+    if (!this.validateStaffDiscountPhone(phone)) {
+      return;
+    }
     const stkStatus = document.getElementById('stk-status-area');
     const stkBadge = document.getElementById('stk-status-badge');
 
@@ -1024,6 +1086,9 @@ export class TillView {
 
   async triggerSplitMpesaStk() {
     const phone = document.getElementById('pay-split-phone').value;
+    if (!this.validateStaffDiscountPhone(phone)) {
+      return;
+    }
     const mpesaPortion = parseFloat(document.getElementById('pay-split-mpesa').value) || 0;
     
     if (state.syncManager.connectionStatus === 'OFFLINE') {
@@ -1044,6 +1109,13 @@ export class TillView {
   }
 
   async triggerPaystack(channel) {
+    if (channel === 'mobile_money') {
+      const airtelPhone = document.getElementById('pay-airtel-phone').value;
+      if (!this.validateStaffDiscountPhone(airtelPhone)) {
+        return;
+      }
+    }
+
     const emailInputId = channel === 'card' ? 'pay-card-email' : channel === 'mobile_money' ? 'pay-airtel-email' : 'pay-bank-email';
     const statusWrapId = channel === 'card' ? 'card-paystack-status' : channel === 'mobile_money' ? 'airtel-paystack-status' : 'bank-paystack-status';
     const badgeId = channel === 'card' ? 'card-paystack-badge' : channel === 'mobile_money' ? 'airtel-paystack-badge' : 'bank-paystack-badge';
@@ -1099,6 +1171,24 @@ export class TillView {
   }
 
   async finalizeInvoice() {
+    // Validate Staff Discount Phone Number if present
+    if (this.cart.some(item => item.product.id === 'prod-staff-discount')) {
+      let targetPhone = '';
+      if (this.selectedPaymentMethod === 'MPESA') {
+        targetPhone = document.getElementById('pay-mpesa-phone').value;
+      } else if (this.selectedPaymentMethod === 'AIRTEL_PAYSTACK') {
+        targetPhone = document.getElementById('pay-airtel-phone').value;
+      } else if (this.selectedPaymentMethod === 'SPLIT') {
+        targetPhone = document.getElementById('pay-split-phone').value;
+      }
+
+      if (['MPESA', 'AIRTEL_PAYSTACK', 'SPLIT'].includes(this.selectedPaymentMethod) || targetPhone) {
+        if (!this.validateStaffDiscountPhone(targetPhone)) {
+          return; // Discount removed and normal price charged, stop so cashier re-confirms with updated total
+        }
+      }
+    }
+
     const saleId = crypto.randomUUID();
     const invoiceNo = `INV-BH001-${new Date().getTime().toString().slice(-6)}`;
     const saleUuid = crypto.randomUUID();
