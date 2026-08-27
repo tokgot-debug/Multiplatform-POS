@@ -193,7 +193,11 @@ export async function seedDatabase() {
     trading_name: 'Vanbransa',
     kra_pin: 'P051234567A',
     etims_mode: 'OSCU',
-    status: 'ACTIVE'
+    status: 'ACTIVE',
+    subscription_plan: 'Bronze Standard',
+    subscription_status: 'ACTIVE',
+    subscription_expires: new Date(Date.now() + 24 * 24 * 60 * 60 * 1000).toISOString(),
+    invite_code: 'VBR-JOIN-99'
   });
   
   // 2. Seed Branches

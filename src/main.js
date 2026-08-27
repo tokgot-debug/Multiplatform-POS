@@ -26,6 +26,7 @@ import { SettingsView } from './ui/settings';
 import { FinanceView } from './ui/finance';
 import { QrToolsView } from './ui/qr_export';
 import { AuditLogsView } from './ui/audit-logs';
+import { SubscriptionsView } from './ui/subscriptions';
 import { state, showNotification } from './context';
 
 // Global polyfill for crypto.randomUUID in non-secure contexts (e.g. previewing over HTTP local network)
@@ -115,6 +116,7 @@ async function initApp() {
   state.views['house-stock'] = new HouseStockView(document.getElementById('view-house-stock'));
   state.views.users = new UsersView(document.getElementById('view-users'));
   state.views['audit-logs'] = new AuditLogsView(document.getElementById('view-view-audit-logs') || document.getElementById('view-audit-logs'));
+  state.views.subscriptions = new SubscriptionsView(document.getElementById('view-subscriptions'));
   state.views.settings = new SettingsView(document.getElementById('view-settings'));
   state.views.finance = new FinanceView(document.getElementById('view-finance'));
   state.views.qrtools = new QrToolsView(document.getElementById('view-qrtools'));
@@ -246,6 +248,13 @@ document.getElementById('numpad-ok').addEventListener('click', async () => {
   if (user && user.pin === pin) {
     // PIN correct. Unlock POS Shell
     state.currentUser = user;
+    
+    // Resolve tenant and branch context
+    const tenant = await db.tenants.get(user.tenant_id);
+    if (tenant) state.currentTenant = tenant;
+    const branch = await db.branches.where('tenant_id').equals(user.tenant_id).first();
+    if (branch) state.currentBranch = branch;
+
     document.getElementById('pin-modal').classList.remove('active');
     document.getElementById('pos-shell').classList.remove('hidden');
     
@@ -269,7 +278,8 @@ document.getElementById('numpad-ok').addEventListener('click', async () => {
       'orders': ['Owner', 'Store Manager', 'Supervisor', 'Bar Staff'],
       'finance': ['Owner', 'Store Manager'],
       'qrtools': ['Owner', 'Store Manager', 'Supervisor'],
-      'audit-logs': ['Owner', 'Store Manager']
+      'audit-logs': ['Owner', 'Store Manager'],
+      'subscriptions': ['Owner', 'Store Manager']
     };
     
     document.querySelectorAll('.sidebar-nav-btn').forEach(btn => {
@@ -327,7 +337,8 @@ async function switchTab(tabName) {
     'orders': ['Owner', 'Store Manager', 'Supervisor', 'Bar Staff'],
     'finance': ['Owner', 'Store Manager'],
     'qrtools': ['Owner', 'Store Manager', 'Supervisor'],
-    'audit-logs': ['Owner', 'Store Manager']
+    'audit-logs': ['Owner', 'Store Manager'],
+    'subscriptions': ['Owner', 'Store Manager']
   };
   
   // If the tab is restricted and the user's role is not in the allowed list, block access
