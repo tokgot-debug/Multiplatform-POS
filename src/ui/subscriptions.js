@@ -173,12 +173,71 @@ export class SubscriptionsView {
               </label>
             </div>
 
+            <!-- Payment Method Selector -->
             <div style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 16px;">
-              <label style="display: block; font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px;">M-Pesa Mobile Number</label>
-              <input type="tel" id="billing-phone" placeholder="07XXXXXXXX" style="width: 100%; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 6px; padding: 10px 12px; color: #fff; font-size: 13px; outline: none; font-family: monospace; margin-bottom: 14px;">
+              <label style="display: block; font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px;">Select Payment Method</label>
               
+              <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 16px;">
+                <button type="button" class="pay-method-btn active" data-method="mpesa" style="background: rgba(16,185,129,0.1); border: 1px solid var(--accent-green); color: #fff; padding: 10px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s;">
+                  <span>💚</span> M-Pesa
+                </button>
+                <button type="button" class="pay-method-btn" data-method="airtel" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); color: #fff; padding: 10px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s;">
+                  <span>❤️</span> Airtel Money
+                </button>
+                <button type="button" class="pay-method-btn" data-method="bank" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); color: #fff; padding: 10px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s;">
+                  <span>🏦</span> Bank Transfer
+                </button>
+                <button type="button" class="pay-method-btn" data-method="card" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); color: #fff; padding: 10px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s;">
+                  <span>💳</span> Visa / MasterCard
+                </button>
+              </div>
+
+              <!-- Method Details Input Fields -->
+              
+              <!-- 1. Mobile (M-Pesa / Airtel Money) -->
+              <div id="pay-details-mobile" style="display: block;">
+                <label id="mobile-label-text" style="display: block; font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px;">M-Pesa Mobile Number</label>
+                <input type="tel" id="billing-phone" placeholder="07XXXXXXXX" style="width: 100%; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 6px; padding: 10px 12px; color: #fff; font-size: 13px; outline: none; font-family: monospace; margin-bottom: 14px;">
+              </div>
+
+              <!-- 2. Bank Transfer -->
+              <div id="pay-details-bank" style="display: none;">
+                <div style="margin-bottom: 10px;">
+                  <label style="display: block; font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px;">Select Bank</label>
+                  <select id="billing-bank-name" style="width: 100%; background: rgba(3, 7, 18, 0.4); border: 1px solid var(--border-color); color: #fff; padding: 10px 12px; border-radius: 6px; font-size: 13px; outline: none;">
+                    <option value="KCB Bank">Kenya Commercial Bank (KCB)</option>
+                    <option value="Equity Bank">Equity Bank</option>
+                    <option value="Cooperative Bank">Co-operative Bank</option>
+                    <option value="NCBA Bank">NCBA Bank</option>
+                    <option value="Absa Bank">Absa Bank Kenya</option>
+                  </select>
+                </div>
+                <div>
+                  <label style="display: block; font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px;">Bank Account Number</label>
+                  <input type="text" id="billing-bank-acc" placeholder="e.g. 1109876543" style="width: 100%; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 6px; padding: 10px 12px; color: #fff; font-size: 13px; outline: none; font-family: monospace; margin-bottom: 14px;">
+                </div>
+              </div>
+
+              <!-- 3. Visa / MasterCard Card Payment -->
+              <div id="pay-details-card" style="display: none;">
+                <div style="margin-bottom: 10px;">
+                  <label style="display: block; font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px;">Card Number</label>
+                  <input type="text" id="billing-card-num" placeholder="4111 2222 3333 4444" style="width: 100%; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 6px; padding: 10px 12px; color: #fff; font-size: 13px; outline: none; font-family: monospace;">
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;">
+                  <div>
+                    <label style="display: block; font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px;">Expiry Date</label>
+                    <input type="text" id="billing-card-exp" placeholder="MM/YY" maxlength="5" style="width: 100%; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 6px; padding: 10px 12px; color: #fff; font-size: 13px; outline: none; font-family: monospace; text-align: center;">
+                  </div>
+                  <div>
+                    <label style="display: block; font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px;">CVV</label>
+                    <input type="password" id="billing-card-cvv" placeholder="•••" maxlength="3" style="width: 100%; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 6px; padding: 10px 12px; color: #fff; font-size: 13px; outline: none; font-family: monospace; text-align: center; letter-spacing: 2px;">
+                  </div>
+                </div>
+              </div>
+
               <button id="btn-trigger-renewal" style="width: 100%; background: var(--accent-amber); color: #000; border: none; padding: 12px; border-radius: 8px; font-size: 13px; font-weight: 800; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                <span>📲</span> Pay &amp; Activate License
+                <span>💳</span> Pay &amp; Activate License
               </button>
             </div>
 
@@ -193,12 +252,12 @@ export class SubscriptionsView {
 
       </div>
 
-      <!-- M-Pesa STK Push Loader Overlay Modal -->
+      <!-- Payment STK / Gateway Push Loader Overlay Modal -->
       <div id="mpesa-stk-modal" class="modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 99999; justify-content: center; align-items: center; padding: 20px;">
         <div style="background: #18181b; border: 1px solid var(--border-color); border-radius: 16px; width: 100%; max-width: 380px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.8); text-align: center; padding: 32px 24px;">
           <div id="mpesa-loader-spinner" style="width: 50px; height: 50px; border: 4px solid rgba(16, 185, 129, 0.1); border-top-color: var(--accent-green); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px;"></div>
           <h4 id="mpesa-loader-title" style="color: #fff; font-size: 16px; margin: 0 0 10px 0;">Sending STK Push Request...</h4>
-          <p id="mpesa-loader-desc" style="color: var(--text-secondary); font-size: 12px; margin: 0 0 20px 0;">Please check your phone for the M-Pesa PIN prompt.</p>
+          <p id="mpesa-loader-desc" style="color: var(--text-secondary); font-size: 12px; margin: 0 0 20px 0;">Please check your device for authorization.</p>
           <div style="font-size: 11px; color: var(--text-muted); font-family: monospace;" id="mpesa-loader-details">KES 3,000.00 • Bronze Standard</div>
         </div>
       </div>
@@ -292,47 +351,140 @@ export class SubscriptionsView {
       });
     });
 
-    // 2. STK Push simulated payment triggers
+    // 2. Payment Method Toggling
+    const methodBtns = this.container.querySelectorAll('.pay-method-btn');
+    methodBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        methodBtns.forEach(b => {
+          b.classList.remove('active');
+          b.style.background = 'rgba(255,255,255,0.03)';
+          b.style.borderColor = 'var(--border-color)';
+        });
+        btn.classList.add('active');
+        btn.style.background = 'rgba(16, 185, 129, 0.1)';
+        btn.style.borderColor = 'var(--accent-green)';
+
+        const method = btn.getAttribute('data-method');
+        const mobileDiv = document.getElementById('pay-details-mobile');
+        const bankDiv = document.getElementById('pay-details-bank');
+        const cardDiv = document.getElementById('pay-details-card');
+
+        if (method === 'mpesa' || method === 'airtel') {
+          mobileDiv.style.display = 'block';
+          bankDiv.style.display = 'none';
+          cardDiv.style.display = 'none';
+          document.getElementById('mobile-label-text').textContent = `${method === 'mpesa' ? 'M-Pesa' : 'Airtel Money'} Mobile Number`;
+        } else if (method === 'bank') {
+          mobileDiv.style.display = 'none';
+          bankDiv.style.display = 'block';
+          cardDiv.style.display = 'none';
+        } else if (method === 'card') {
+          mobileDiv.style.display = 'none';
+          bankDiv.style.display = 'none';
+          cardDiv.style.display = 'block';
+        }
+      });
+    });
+
+    // 3. STK / Gateway simulated payment triggers
     const payBtn = document.getElementById('btn-trigger-renewal');
     if (payBtn) {
       payBtn.addEventListener('click', async () => {
-        const phone = document.getElementById('billing-phone').value.trim();
-        if (!phone || phone.length < 10) {
-          showNotification('Please enter a valid 10-digit mobile number.', 'error');
-          return;
+        const activeBtn = this.container.querySelector('.pay-method-btn.active');
+        const method = activeBtn ? activeBtn.getAttribute('data-method') : 'mpesa';
+
+        // Validations
+        if (method === 'mpesa' || method === 'airtel') {
+          const phone = document.getElementById('billing-phone').value.trim();
+          if (!phone || phone.length < 10) {
+            showNotification('Please enter a valid 10-digit mobile number.', 'error');
+            return;
+          }
+        } else if (method === 'bank') {
+          const bankAcc = document.getElementById('billing-bank-acc').value.trim();
+          if (!bankAcc || bankAcc.length < 8) {
+            showNotification('Please enter a valid bank account number.', 'error');
+            return;
+          }
+        } else if (method === 'card') {
+          const cardNum = document.getElementById('billing-card-num').value.trim();
+          const cardExp = document.getElementById('billing-card-exp').value.trim();
+          const cardCvv = document.getElementById('billing-card-cvv').value.trim();
+          if (cardNum.replace(/\s/g, '').length < 16) {
+            showNotification('Please enter a valid 16-digit card number.', 'error');
+            return;
+          }
+          if (!cardExp.includes('/') || cardExp.length < 5) {
+            showNotification('Please enter expiry date in MM/YY format.', 'error');
+            return;
+          }
+          if (cardCvv.length < 3) {
+            showNotification('Please enter a valid CVV code.', 'error');
+            return;
+          }
         }
 
         const selectedRadio = this.container.querySelector('input[name="billing-plan"]:checked');
         const planName = selectedRadio.value;
         const planPrice = parseInt(selectedRadio.getAttribute('data-price'));
 
-        // Show Simulated M-Pesa Loader
+        // Show Gateway Loader Modal
         const modal = document.getElementById('mpesa-stk-modal');
         const loaderTitle = document.getElementById('mpesa-loader-title');
         const loaderDesc = document.getElementById('mpesa-loader-desc');
         const loaderDetails = document.getElementById('mpesa-loader-details');
         const loaderSpinner = document.getElementById('mpesa-loader-spinner');
 
-        loaderTitle.textContent = 'Sending STK Push Request...';
-        loaderDesc.textContent = 'Please check your phone for the M-Pesa PIN prompt.';
-        loaderDetails.textContent = `KES ${planPrice.toLocaleString()}.00 • ${planName}`;
+        // Setup custom text based on method
+        let step1Title, step1Desc, step2Title, step2Desc, step3Title, step3Desc, successDesc;
+        const methodNiceName = method === 'mpesa' ? 'M-Pesa' : (method === 'airtel' ? 'Airtel Money' : (method === 'bank' ? 'Bank Transfer' : 'Card Payment'));
+        
+        if (method === 'mpesa' || method === 'airtel') {
+          step1Title = `Sending STK Push Request...`;
+          step1Desc = `Please check your phone for the ${methodNiceName} PIN prompt.`;
+          step2Title = 'Awaiting PIN Verification...';
+          step2Desc = 'Enter PIN on your simulated handset to authorize.';
+          step3Title = 'Processing Payment...';
+          step3Desc = 'Verifying mobile transaction ledger...';
+          successDesc = `${methodNiceName} transaction complete. Subscription activated!`;
+        } else if (method === 'bank') {
+          step1Title = 'Connecting to Bank Network...';
+          step1Desc = 'Initiating Secure Electronic Fund Transfer.';
+          step2Title = 'Validating Clearing House...';
+          step2Desc = 'Routing settlement details to central bank node.';
+          step3Title = 'Settling Transaction...';
+          step3Desc = 'Verifying transfer balance and updating ledger...';
+          successDesc = 'Bank transfer confirmed. Subscription activated!';
+        } else {
+          step1Title = 'Connecting to Card Gateway...';
+          step1Desc = 'Validating Visa/MasterCard card number.';
+          step2Title = 'Awaiting 3D Secure validation...';
+          step2Desc = 'Please verify the simulated OTP on your device screen.';
+          step3Title = 'Settling Card Payment...';
+          step3Desc = 'Authorizing card networks and completing hold...';
+          successDesc = 'Card transaction authorized. Subscription activated!';
+        }
+
+        loaderTitle.textContent = step1Title;
+        loaderDesc.textContent = step1Desc;
+        loaderDetails.textContent = `KES ${planPrice.toLocaleString()}.00 • ${planName} via ${methodNiceName}`;
         loaderSpinner.style.animation = 'spin 1s linear infinite';
         loaderSpinner.style.borderTopColor = 'var(--accent-green)';
         
         modal.style.display = 'flex';
         modal.classList.add('active');
 
-        // Stage 1: Send Request
+        // Stage 1
         await new Promise(r => setTimeout(r, 2000));
-        loaderTitle.textContent = 'Awaiting PIN Verification...';
-        loaderDesc.textContent = 'Enter PIN on your simulated handset to authorize.';
+        loaderTitle.textContent = step2Title;
+        loaderDesc.textContent = step2Desc;
         
-        // Stage 2: Prompt PIN
+        // Stage 2
         await new Promise(r => setTimeout(r, 2000));
-        loaderTitle.textContent = 'Processing Payment...';
-        loaderDesc.textContent = 'Verifying funds with Safaricom ledger...';
+        loaderTitle.textContent = step3Title;
+        loaderDesc.textContent = step3Desc;
 
-        // Stage 3: Complete transaction
+        // Stage 3
         await new Promise(r => setTimeout(r, 1500));
         
         try {
@@ -358,13 +510,13 @@ export class SubscriptionsView {
             'TENANT',
             tenant.id,
             null,
-            JSON.stringify({ planName, expiryDate })
+            JSON.stringify({ planName, expiryDate, method: methodNiceName })
           );
 
           loaderSpinner.style.animation = 'none';
           loaderSpinner.style.borderTopColor = 'var(--accent-green)';
           loaderTitle.innerHTML = '<span style="color:var(--accent-green)">✔ Payment Successful</span>';
-          loaderDesc.textContent = 'M-Pesa transaction complete. Subscription activated!';
+          loaderDesc.textContent = successDesc;
           
           showNotification(`Subscription renewed to ${planName}!`, 'success');
           
