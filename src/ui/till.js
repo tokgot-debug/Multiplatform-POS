@@ -3,6 +3,21 @@ import { logAuditEvent, getHouseStock } from '../db/index';
 import { state, showNotification } from '../context';
 import { MpesaService } from '../services/mpesa';
 
+export function getCanonicalCategoryName(rawName) {
+  if (!rawName) return 'Other';
+  const lo = String(rawName).trim().toLowerCase();
+  
+  if (lo.includes('beer') || lo.includes('cider')) return 'Beers & Ciders';
+  if (lo.includes('spirit') || lo.includes('wine') || lo === 'shots' || lo === 'cocktails') return 'Spirits & Wines';
+  if (lo.includes('drink') || lo.includes('beverage') || lo.includes('soft') || lo.includes('juice') || lo === 'soda' || lo === 'chiller' || lo === 'freezer' || lo === 'drnks' || lo === 'drunks') return 'Drinks & Beverages';
+  if (lo.includes('food') || lo.includes('meal') || lo.includes('snack') || lo.includes('meat') || lo.includes('beef') || lo.includes('poultry') || lo.includes('cereal') || lo.includes('breakfast') || lo.includes('vegetable')) return 'Food & Meals';
+  if (lo.includes('consum') || lo.includes('utensil') || lo.includes('disposable') || lo.includes('packaging') || lo.includes('detergent') || lo.includes('toiletrie')) return 'Consumables & Supplies';
+  if (lo.includes('service') || lo.includes('charge') || lo.includes('vip')) return 'Services & Charges';
+  if (lo.includes('stock') || lo.includes('restock') || /\d{1,2}\/\d{1,2}\/\d{2,4}/.test(lo)) return 'Restocks';
+  
+  return rawName.trim();
+}
+
 export class TillView {
   constructor(container) {
     this.container = container;
@@ -538,9 +553,33 @@ export class TillView {
         .map(String)
     );
 
-    const usedCategories = categories
-      .filter(category => usedCategoryIds.has(String(category.id)))
-      .sort((a, b) => String(a.name ?? a.id).localeCompare(String(b.name ?? b.id)));
+    const usedCategories = categories.filter(category => usedCategoryIds.has(String(category.id)));
+
+    // Group category IDs by canonical category display name
+    const groupedByName = new Map();
+    for (const cat of usedCategories) {
+      const canonicalName = getCanonicalCategoryName(cat.name ?? cat.id);
+      if (!groupedByName.has(canonicalName)) {
+        groupedByName.set(canonicalName, new Set());
+      }
+      groupedByName.get(canonicalName).add(String(cat.id));
+    }
+
+    // Also collect category IDs from products whose category_id wasn't in categories table
+    const categoryMap = new Map(categories.map(c => [String(c.id), c.name]));
+    for (const prod of products) {
+      if (prod.category_id) {
+        const rawName = categoryMap.get(String(prod.category_id)) || String(prod.category_id);
+        const canonicalName = getCanonicalCategoryName(rawName);
+        if (!groupedByName.has(canonicalName)) {
+          groupedByName.set(canonicalName, new Set());
+        }
+        groupedByName.get(canonicalName).add(String(prod.category_id));
+      }
+    }
+
+    const canonicalCategories = Array.from(groupedByName.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]));
 
     const fragment = document.createDocumentFragment();
     const allItemsChip = document.createElement('div');
@@ -549,11 +588,12 @@ export class TillView {
     allItemsChip.textContent = 'All Items';
     fragment.appendChild(allItemsChip);
 
-    for (const category of usedCategories) {
+    for (const [name, idsSet] of canonicalCategories) {
       const chip = document.createElement('div');
       chip.className = 'filter-chip';
-      chip.dataset.cat = String(category.id);
-      chip.textContent = String(category.name ?? category.id);
+      chip.dataset.catIds = Array.from(idsSet).join(',');
+      chip.dataset.catName = name;
+      chip.textContent = name;
       fragment.appendChild(chip);
     }
 
@@ -576,7 +616,9 @@ export class TillView {
 
   filterCatalogue() {
     const query = document.getElementById('till-search').value.toLowerCase();
-    const activeCat = document.querySelector('#cat-filters .filter-chip.active')?.getAttribute('data-cat') || 'all';
+    const activeChip = document.querySelector('#cat-filters .filter-chip.active');
+    const activeCat = activeChip?.getAttribute('data-cat') || 'all';
+    const activeCatIds = activeChip?.getAttribute('data-cat-ids') ? activeChip.getAttribute('data-cat-ids').split(',') : null;
     const cards = document.querySelectorAll('.product-card');
 
     cards.forEach(card => {
@@ -586,7 +628,7 @@ export class TillView {
       const cat = card.getAttribute('data-cat');
 
       const matchesQuery = !query || name.includes(query) || sku.includes(query) || bar.includes(query);
-      const matchesCat = activeCat === 'all' || cat === activeCat;
+      const matchesCat = activeCat === 'all' || (activeCatIds ? activeCatIds.includes(cat) : cat === activeCat);
 
       if (matchesQuery && matchesCat) {
         card.classList.remove('hidden');

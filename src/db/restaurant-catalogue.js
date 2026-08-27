@@ -277,6 +277,7 @@ export async function migrateRestaurantCatalogue() {
   ]);
 
   await db.transaction('rw', db.categories, db.products, db.stock_movements, async () => {
+    await db.categories.filter(c => c.import_source === IMPORT_SOURCE).delete();
     await bulkPutInChunks(db.categories, categories);
     await bulkPutInChunks(db.products, products);
     await bulkPutInChunks(db.stock_movements, movements);
