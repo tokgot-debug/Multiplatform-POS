@@ -108,6 +108,10 @@ export class TillView {
               <span>Subtotal</span>
               <span id="summary-subtotal">KES 0.00</span>
             </div>
+            <div class="summary-row" id="summary-vip-row" style="display:none;color:var(--accent-amber);">
+              <span>VIP Surcharge (30%)</span>
+              <span id="summary-vip-charge">KES 0.00</span>
+            </div>
             <div class="summary-row">
               <span>Discount</span>
               <span id="summary-discount">KES 0.00</span>
@@ -486,6 +490,7 @@ export class TillView {
       const barcodeVal = barcodeByProduct.get(productId) || '';
       card.setAttribute('data-barcode', barcodeVal);
 
+      const isVipItem = prod.id === 'prod-table-service';
       card.innerHTML = `
         <div style="height: 120px; flex-shrink: 0; border-radius: 8px; margin-bottom: 8px; background: url('${imageData ? (imageData.includes('?') ? imageData : imageData + '?v=2') : '/ai_images/juice_glass.jpg'}') center/cover no-repeat; border: 1px solid rgba(255, 255, 255, 0.05); display: flex; align-items: center; justify-content: center;">
           ${!imageData ? '<span style="font-size:24px; opacity:0.3;">📷</span>' : ''}
@@ -506,7 +511,7 @@ export class TillView {
         </div>
 
         <div class="card-footer">
-          <span class="price">KES ${sellPrice.toFixed(2)}</span>
+          <span class="price">${isVipItem ? 'VIP +30%' : 'KES ' + sellPrice.toFixed(2)}</span>
           <span class="stock ${stock <= 10 && !prod.is_service ? 'low' : ''}">
             ${prod.is_service ? 'Service' : stock + ' left'}
           </span>
@@ -634,6 +639,26 @@ export class TillView {
       (!selectedBatch || item.batch?.id === selectedBatch.id)
     );
 
+    // VIP Service Charge: toggle on/off, always qty 1
+    if (product.id === 'prod-table-service') {
+      if (existingIndex > -1) {
+        this.cart.splice(existingIndex, 1);
+        showNotification('VIP Surcharge removed', 'warning');
+        this.updateCartUI();
+        return;
+      }
+      this.cart.unshift({
+        product,
+        qty: 1,
+        discount_amount: 0,
+        discount_percent: 0,
+        batch: null
+      });
+      showNotification('VIP +30% Surcharge applied', 'success');
+      this.updateCartUI();
+      return;
+    }
+
     if (existingIndex > -1) {
       this.cart[existingIndex].qty += 1;
     } else {
@@ -673,6 +698,7 @@ export class TillView {
       const div = document.createElement('div');
       div.className = 'cart-item';
       
+      const isVipCartItem = item.product.id === 'prod-table-service';
       const rate = this.selectedCustomer.price_tier === 'WHOLESALE' ? item.product.cost_price * 1.15 : item.product.sell_price;
       const total = rate * item.qty;
 
@@ -689,12 +715,13 @@ export class TillView {
           </div>
         ` : ''}
         <div class="cart-item-details">
+          ${isVipCartItem ? '<span style="font-size:11px;color:var(--accent-amber);font-weight:700;">+30% Surcharge</span>' : `
           <div class="cart-item-qty-control">
             <button class="qty-btn dec" data-idx="${index}">-</button>
             <span class="qty-val">${item.qty}</span>
             <button class="qty-btn inc" data-idx="${index}">+</button>
-          </div>
-          <span class="cart-item-price">KES ${total.toFixed(2)}</span>
+          </div>`}
+          <span class="cart-item-price">${isVipCartItem ? 'VIP' : 'KES ' + total.toFixed(2)}</span>
         </div>
       `;
 
@@ -705,22 +732,27 @@ export class TillView {
         this.updateCartUI();
       });
 
-      // Quantity increment/decrement listener
-      div.querySelector('.qty-btn.dec').addEventListener('click', (e) => {
-        const idx = parseInt(e.target.getAttribute('data-idx'));
-        if (this.cart[idx].qty > 1) {
-          this.cart[idx].qty--;
-        } else {
-          this.cart.splice(idx, 1);
-        }
-        this.updateCartUI();
-      });
-
-      div.querySelector('.qty-btn.inc').addEventListener('click', (e) => {
-        const idx = parseInt(e.target.getAttribute('data-idx'));
-        this.cart[idx].qty++;
-        this.updateCartUI();
-      });
+      // Quantity increment/decrement listener (VIP items have no qty controls)
+      const decBtn = div.querySelector('.qty-btn.dec');
+      const incBtn = div.querySelector('.qty-btn.inc');
+      if (decBtn) {
+        decBtn.addEventListener('click', (e) => {
+          const idx = parseInt(e.target.getAttribute('data-idx'));
+          if (this.cart[idx].qty > 1) {
+            this.cart[idx].qty--;
+          } else {
+            this.cart.splice(idx, 1);
+          }
+          this.updateCartUI();
+        });
+      }
+      if (incBtn) {
+        incBtn.addEventListener('click', (e) => {
+          const idx = parseInt(e.target.getAttribute('data-idx'));
+          this.cart[idx].qty++;
+          this.updateCartUI();
+        });
+      }
 
       list.appendChild(div);
     });
@@ -732,8 +764,14 @@ export class TillView {
     let subtotal = 0;
     let discount = 0;
     let tax = 0;
+    let vipSurcharge = 0;
 
+    // Check if VIP Service Charge is in the cart
+    const hasVip = this.cart.some(item => item.product.id === 'prod-table-service');
+
+    // First pass: compute subtotal of NON-VIP items only
     this.cart.forEach(item => {
+      if (item.product.id === 'prod-table-service') return; // Skip VIP item itself
       const price = this.selectedCustomer.price_tier === 'WHOLESALE' ? item.product.cost_price * 1.15 : item.product.sell_price;
       const itemSub = price * item.qty;
       subtotal += itemSub;
@@ -747,15 +785,29 @@ export class TillView {
       tax += itemTax;
     });
 
-    const total = subtotal - discount;
+    // Apply VIP 30% surcharge on the subtotal of other items
+    if (hasVip) {
+      vipSurcharge = subtotal * 0.30;
+    }
+
+    const total = subtotal + vipSurcharge - discount;
 
     document.getElementById('summary-subtotal').innerText = `KES ${subtotal.toFixed(2)}`;
+    const vipRow = document.getElementById('summary-vip-row');
+    if (vipRow) {
+      if (hasVip) {
+        vipRow.style.display = '';
+        document.getElementById('summary-vip-charge').innerText = `KES ${vipSurcharge.toFixed(2)}`;
+      } else {
+        vipRow.style.display = 'none';
+      }
+    }
     document.getElementById('summary-discount').innerText = `KES ${discount.toFixed(2)}`;
     document.getElementById('summary-tax').innerText = `KES ${tax.toFixed(2)}`;
     document.getElementById('summary-total').innerText = `KES ${total.toFixed(2)}`;
 
     // Store calculations on class reference
-    this.totals = { subtotal, discount, tax, total };
+    this.totals = { subtotal, discount, tax, total, vipSurcharge };
   }
 
   openCheckoutModal() {
