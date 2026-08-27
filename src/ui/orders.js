@@ -54,6 +54,7 @@ export class OrdersView {
                 <option>All Statuses</option>
                 <option>SENT</option>
                 <option>PENDING-PRINT</option>
+                <option>VOIDED</option>
               </select>
               
               <button id="orders-export-btn" style="background: #fff; color: #000; border: none; padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px;">
@@ -122,6 +123,9 @@ export class OrdersView {
               <button id="orders-format-80" style="background: var(--color-primary, #e8a535); color: #000; border: none; padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: 700; cursor: pointer;">80mm</button>
             </div>
             <div style="display: flex; gap: 10px;">
+              <button id="orders-modal-void" style="background: #ef4444; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                🚫 Void Sale
+              </button>
               <button id="orders-modal-print" style="background: #10b981; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px;">
                 🖨️ Print
               </button>
@@ -213,10 +217,15 @@ export class OrdersView {
         if (paymentVal === 'm-pesa' && !pmtMethod.includes('mpesa') && !pmtMethod.includes('m-pesa')) return false;
       }
       // Match Status
-      if (statusVal && statusVal !== 'All Statuses') {
-        const isQueued = sale.fiscal_status === 'QUEUED' || !sale.fiscal_status;
-        if (statusVal === 'PENDING-PRINT' && !isQueued) return false;
-        if (statusVal === 'SENT' && isQueued) return false;
+      if (sale.status === 'CANCELLED') {
+        if (statusVal !== 'All Statuses' && statusVal !== 'VOIDED') return false;
+      } else {
+        if (statusVal === 'VOIDED') return false;
+        if (statusVal && statusVal !== 'All Statuses') {
+          const isQueued = sale.fiscal_status === 'QUEUED' || !sale.fiscal_status;
+          if (statusVal === 'PENDING-PRINT' && !isQueued) return false;
+          if (statusVal === 'SENT' && isQueued) return false;
+        }
       }
 
       return true;
@@ -259,11 +268,18 @@ export class OrdersView {
       const total = payment ? payment.amount : (sale.grand_total || 0);
       
       // Determine badges
-      const statusBadge = sale.fiscal_status === 'QUEUED' || !sale.fiscal_status ? 
-        '<span style="background: #fff; color: #000; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 800;">PENDING-PRINT</span>' :
-        '<span style="background: #fff; color: #000; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 800;">SENT</span>';
-        
-      const paymentBadge = '<span style="background: rgba(16,185,129,0.15); color: #10b981; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 800;">PAID</span>';
+      let statusBadge = '';
+      let paymentBadge = '';
+      
+      if (sale.status === 'CANCELLED') {
+        statusBadge = '<span style="background: rgba(239,68,68,0.15); color: #ef4444; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 800;">VOIDED</span>';
+        paymentBadge = '<span style="background: rgba(239,68,68,0.15); color: #ef4444; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 800;">VOIDED</span>';
+      } else {
+        statusBadge = (sale.fiscal_status === 'QUEUED' || !sale.fiscal_status) ? 
+          '<span style="background: #fff; color: #000; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 800;">PENDING-PRINT</span>' :
+          '<span style="background: #fff; color: #000; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 800;">SENT</span>';
+        paymentBadge = '<span style="background: rgba(16,185,129,0.15); color: #10b981; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 800;">PAID</span>';
+      }
 
       rowsHtml += `
         <tr style="border-bottom: 1px solid var(--border-color);">
@@ -366,6 +382,15 @@ export class OrdersView {
       });
     }
 
+    const voidBtn = document.getElementById('orders-modal-void');
+    if (voidBtn) {
+      voidBtn.addEventListener('click', async () => {
+        if (this.currentSaleId) {
+          await this.handleVoidSale(this.currentSaleId);
+        }
+      });
+    }
+
     const fmt58 = document.getElementById('orders-format-58');
     const fmt80 = document.getElementById('orders-format-80');
     const paper = document.getElementById('orders-receipt-paper');
@@ -427,6 +452,11 @@ export class OrdersView {
     const pmtMethod = payment ? payment.method : 'CASH';
 
     paper.innerHTML = `
+      ${sale.status === 'CANCELLED' ? `
+        <div style="color: #ef4444; border: 2px dashed #ef4444; font-size: 14px; font-weight: 900; padding: 6px; text-align: center; margin-bottom: 12px; border-radius: 4px; letter-spacing: 2px; text-transform: uppercase;">
+          *** VOIDED / CANCELLED ***
+        </div>
+      ` : ''}
       <div style="text-align: center; margin-bottom: 12px;">
         <h2 style="margin: 0; font-size: 16px; font-weight: 800; text-transform: uppercase;">${tenant.trading_name || 'Vanbransa'}</h2>
         <p style="margin: 2px 0 0 0; font-size: 10px; color: #444;">${branch.name || 'Main Branch'}</p>
@@ -491,7 +521,7 @@ export class OrdersView {
       <div style="font-size: 10px;">
         <div><b>Payment Mode:</b> ${pmtMethod}</div>
         ${payment && payment.reference ? `<div><b>Ref:</b> ${payment.reference}</div>` : ''}
-        <div><b>Status:</b> PAID &amp; CONFIRMED</div>
+        <div><b>Status:</b> ${sale.status === 'CANCELLED' ? '<span style="color:#ef4444;font-weight:bold;">VOIDED / CANCELLED</span>' : 'PAID &amp; CONFIRMED'}</div>
       </div>
 
       <div style="border-top: 1px dashed #666; margin: 8px 0;"></div>
@@ -518,6 +548,12 @@ export class OrdersView {
         <p style="margin: 2px 0 0 0;">Powered by Vanbransa Pro POS</p>
       </div>
     `;
+
+    this.currentSaleId = saleId;
+    const voidBtn = document.getElementById('orders-modal-void');
+    if (voidBtn) {
+      voidBtn.style.display = sale.status === 'CANCELLED' ? 'none' : 'flex';
+    }
 
     const modal = document.getElementById('orders-invoice-modal');
     if (modal) modal.style.display = 'flex';
@@ -548,6 +584,164 @@ export class OrdersView {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  }
+
+  async handleVoidSale(saleId) {
+    const sale = await db.sales.get(saleId);
+    if (!sale) return;
+
+    if (sale.status === 'CANCELLED') {
+      alert('This sale is already voided.');
+      return;
+    }
+
+    const performVoid = async (authorizedBy) => {
+      if (!confirm('Are you sure you want to void/cancel this sale? This action will reverse stock depletions and customer loyalty/credit.')) {
+        return;
+      }
+
+      try {
+        await db.transaction('rw', [db.sales, db.sale_lines, db.stock_movements, db.customers, db.audit_log, db.payments], async () => {
+          // 1. Mark Sale as CANCELLED
+          await db.sales.update(saleId, { status: 'CANCELLED' });
+
+          // 2. Reverse stock depletions: add positive qty movements back to counter (HOUSE location)
+          const lines = await db.sale_lines.where('sale_id').equals(saleId).toArray();
+          for (const line of lines) {
+            await db.stock_movements.add({
+              id: crypto.randomUUID(),
+              tenant_id: sale.tenant_id,
+              branch_id: sale.branch_id,
+              product_id: line.product_id,
+              type: 'SALE_CANCEL',
+              location: 'HOUSE',
+              qty: line.qty, // positive quantity reverses the deduction!
+              ref_type: 'SALE_CANCEL',
+              ref_id: saleId,
+              reason: `Void of Invoice ${sale.invoice_no || saleId.substring(0,8)} approved by ${authorizedBy.name}`,
+              created_by: authorizedBy.id,
+              created_at: new Date().toISOString()
+            });
+          }
+
+          // 3. Reverse customer credit & loyalty depletions/additions
+          if (sale.customer_id && sale.customer_id !== 'cust-walkin') {
+            const customer = await db.customers.get(sale.customer_id);
+            if (customer) {
+              const updates = {};
+              const payments = await db.payments.where('sale_id').equals(saleId).toArray();
+              const wasCredit = payments.some(p => p.method === 'CREDIT');
+
+              if (wasCredit) {
+                updates.credit_balance = Math.max(0, (customer.credit_balance || 0) - sale.grand_total);
+              }
+
+              const pointsEarned = Math.floor(sale.grand_total / 100);
+              updates.loyalty_points = Math.max(0, (customer.loyalty_points || 0) - pointsEarned);
+
+              await db.customers.update(customer.id, updates);
+            }
+          }
+
+          // 4. Log audit event
+          await db.audit_log.add({
+            id: crypto.randomUUID(),
+            tenant_id: sale.tenant_id,
+            user_id: authorizedBy.id,
+            action: 'SALE_VOID',
+            entity_type: 'SALE',
+            entity_id: saleId,
+            details: `Voided completed sale ID ${saleId.substring(0,8).toUpperCase()} (Invoice: ${sale.invoice_no || 'N/A'})`,
+            created_at: new Date().toISOString()
+          });
+        });
+
+        alert('Sale voided/cancelled successfully! Stock and customer credit have been updated.');
+        
+        // Close invoice modal
+        const modal = document.getElementById('orders-invoice-modal');
+        if (modal) modal.style.display = 'none';
+
+        // Reload
+        await this.populateOrders();
+      } catch (err) {
+        console.error('Void failed:', err);
+        alert('Failed to void sale. Please try again.');
+      }
+    };
+
+    // Role checks
+    const role = state.currentUser?.role;
+    if (role === 'Supervisor' || role === 'Store Manager' || role === 'Owner') {
+      // Supervisor can void directly
+      await performVoid(state.currentUser);
+    } else {
+      // Waiter/Waitress requires Supervisor PIN approval
+      this.promptSupervisorApproval(async (authorizedUser) => {
+        await performVoid(authorizedUser);
+      });
+    }
+  }
+
+  promptSupervisorApproval(callback) {
+    const dialog = document.createElement('div');
+    dialog.style = 'position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 10000; display: flex; justify-content: center; align-items: center; padding: 20px; font-family: var(--font-main);';
+    dialog.innerHTML = `
+      <div style="background: #18181b; border: 1px solid var(--border-color); border-radius: 16px; width: 100%; max-width: 360px; padding: 24px; box-shadow: var(--glass-shadow); text-align: center;">
+        <span style="font-size: 40px;">🔑</span>
+        <h3 style="margin: 16px 0 8px 0; font-size: 18px; color: #fff; font-weight: 800;">Supervisor Approval Required</h3>
+        <p style="color: var(--text-secondary); font-size: 12px; margin-bottom: 20px; line-height: 1.5;">Waiters/Waitresses are restricted from voiding sales. Please enter a Supervisor, Store Manager, or Owner's 4-digit PIN to authorize this void.</p>
+        
+        <input type="password" id="void-auth-pin" maxlength="4" placeholder="••••" style="width: 100%; text-align: center; font-size: 24px; letter-spacing: 12px; padding: 12px; border-radius: 8px; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: #fff; outline: none; margin-bottom: 20px;">
+        <div id="void-auth-error" style="color: var(--accent-rose); font-size: 12px; margin-bottom: 16px; font-weight: 600; display: none;"></div>
+        
+        <div style="display: flex; gap: 10px;">
+          <button id="void-auth-cancel" style="flex: 1; background: rgba(255,255,255,0.08); border: 1px solid var(--border-color); color: #fff; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px;">Cancel</button>
+          <button id="void-auth-submit" style="flex: 1; background: #ef4444; color: #fff; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 13px;">Verify &amp; Approve</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(dialog);
+
+    const pinInput = dialog.querySelector('#void-auth-pin');
+    const errorDiv = dialog.querySelector('#void-auth-error');
+    const cancelBtn = dialog.querySelector('#void-auth-cancel');
+    const submitBtn = dialog.querySelector('#void-auth-submit');
+
+    // Auto focus pin input
+    pinInput.focus();
+
+    const close = () => {
+      dialog.remove();
+    };
+
+    cancelBtn.addEventListener('click', close);
+
+    const attemptSubmit = async () => {
+      const pin = pinInput.value;
+      if (pin.length < 4) {
+        errorDiv.textContent = 'Please enter a 4-digit PIN.';
+        errorDiv.style.display = 'block';
+        return;
+      }
+
+      // Query database for user with matching PIN and valid role
+      const authorizer = await db.users.where('pin').equals(pin).first();
+      if (!authorizer || (authorizer.role !== 'Supervisor' && authorizer.role !== 'Store Manager' && authorizer.role !== 'Owner')) {
+        errorDiv.textContent = 'Unauthorized PIN. Access Denied.';
+        errorDiv.style.display = 'block';
+        return;
+      }
+
+      // Success
+      close();
+      callback(authorizer);
+    };
+
+    submitBtn.addEventListener('click', attemptSubmit);
+    pinInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') attemptSubmit();
+    });
   }
 }
 
