@@ -244,7 +244,7 @@ export async function seedDatabase() {
       tax_code: 'A', item_cls_cd: '50202306', item_ty_cd: '1',
       pkg_unit_cd: 'BO', qty_unit_cd: 'U', origin_country: 'KE',
       sell_price: 250.00, cost_price: 160.00,
-      image_data: '/ai_images/beer_glass.jpg',
+      image_data: '/ai_images/tusker_lager.jpg',
       etims_registered_at: new Date().toISOString(), is_active: 1, version: 1
     },
     {
@@ -264,7 +264,7 @@ export async function seedDatabase() {
       tax_code: 'A', item_cls_cd: '50202306', item_ty_cd: '1',
       pkg_unit_cd: 'BO', qty_unit_cd: 'U', origin_country: 'KE',
       sell_price: 250.00, cost_price: 155.00,
-      image_data: '/ai_images/beer_glass.jpg',
+      image_data: '/ai_images/whitecap_lager.jpg',
       etims_registered_at: new Date().toISOString(), is_active: 1, version: 1
     },
     {

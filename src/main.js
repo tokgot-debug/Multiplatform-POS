@@ -80,9 +80,9 @@ async function initApp() {
   try {
     const prods = await db.products.toArray();
     const imageMap = {
-      'prod-tusker-bottle': '/ai_images/beer_glass.jpg',
+      'prod-tusker-bottle': '/ai_images/tusker_lager.jpg',
       'prod-guinness': '/ai_images/stout_glass.jpg',
-      'prod-whitecap': '/ai_images/beer_glass.jpg',
+      'prod-whitecap': '/ai_images/whitecap_lager.jpg',
       'prod-savanna': '/ai_images/cider_glass.jpg',
       'prod-smirnoff-tot': '/ai_images/vodka_glass.jpg',
       'prod-jameson-tot': '/ai_images/whiskey_glass.jpg',
