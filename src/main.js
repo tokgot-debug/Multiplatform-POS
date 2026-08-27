@@ -322,7 +322,7 @@ document.getElementById('numpad-ok').addEventListener('click', async () => {
       'audit-logs': ['Owner', 'Store Manager'],
       'subscriptions': ['Owner', 'Store Manager'],
       'kds': ['Owner', 'Store Manager', 'Supervisor', 'Bar Staff'],
-      'procurement': ['Owner', 'Store Manager', 'Bar Staff'],
+      'procurement': ['Owner', 'Store Manager'],
       'customers': ['Owner', 'Store Manager', 'Supervisor']
     };
     
@@ -388,7 +388,7 @@ async function switchTab(tabName) {
     'audit-logs': ['Owner', 'Store Manager'],
     'subscriptions': ['Owner', 'Store Manager'],
     'kds': ['Owner', 'Store Manager', 'Supervisor', 'Bar Staff', 'Store Keeper'],
-    'procurement': ['Owner', 'Store Manager', 'Bar Staff'],
+    'procurement': ['Owner', 'Store Manager'],
     'customers': ['Owner', 'Store Manager', 'Supervisor']
   };
   
