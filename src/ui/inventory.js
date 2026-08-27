@@ -510,8 +510,8 @@ export class InventoryView {
         
         // Block self-approval: Manager cannot approve stock sheet if they entered counts
         // Simulating approval verification
-        if (state.currentUser.role === 'Cashier') {
-          showNotification('Access denied. Cashiers cannot approve stock takes.', 'error');
+        if (state.currentUser.role === 'Waiter/Waitress') {
+          showNotification('Access denied. Waiter/Waitress cannot approve stock takes.', 'error');
           return;
         }
 

@@ -70,7 +70,7 @@ export class UsersView {
             <div style="margin-bottom: 16px;">
               <label style="display: block; font-size: 11px; color: var(--text-secondary); margin-bottom: 6px;">Access Level (Role)</label>
               <select id="user-role" required style="width: 100%; padding: 10px; border-radius: 6px; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: #fff; font-family: var(--font-main); font-size: 13px;">
-                <option value="Cashier">Cashier / Waiter (Level 1)</option>
+                <option value="Waiter/Waitress">Waiter/Waitress (Level 1)</option>
                 <option value="Bar Staff">Bar Staff (Level 1.5)</option>
                 <option value="Store Keeper">Store Keeper (Level 2)</option>
                 <option value="Supervisor">Supervisor (Level 2.5)</option>
@@ -205,7 +205,7 @@ export class UsersView {
           document.getElementById('user-id').value = user.id;
           document.getElementById('user-name').value = user.name;
           document.getElementById('user-email').value = user.email || '';
-          document.getElementById('user-role').value = user.role || 'Cashier';
+          document.getElementById('user-role').value = user.role || 'Waiter/Waitress';
           document.getElementById('user-pin').value = user.pin;
           modal.classList.remove('hidden');
         }

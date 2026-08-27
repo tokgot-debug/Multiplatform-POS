@@ -30,7 +30,7 @@ export class TillView {
         <div style="padding: 48px; text-align: center; color: var(--text-primary); max-width: 500px; margin: 100px auto; background: #140e08; border: 1px solid var(--border-color); border-radius: 16px; box-shadow: var(--glass-shadow); font-family: var(--font-main);">
           <span style="font-size: 60px;">🚫</span>
           <h2 style="margin: 24px 0 12px 0; font-weight: 800; color: #fff; font-size: 22px;">Sales Terminal Restricted</h2>
-          <p style="color: var(--text-secondary); line-height: 1.6; font-size: 14px; margin-bottom: 24px;">Supervisors are restricted from performing till sales. Please log in with a Cashier, Bar Staff, Manager, or Owner account to register sales.</p>
+          <p style="color: var(--text-secondary); line-height: 1.6; font-size: 14px; margin-bottom: 24px;">Supervisors are restricted from performing till sales. Please log in with a Waiter/Waitress, Bar Staff, Manager, or Owner account to register sales.</p>
         </div>
       `;
       return;
@@ -938,10 +938,10 @@ export class TillView {
     const buyerPin = document.getElementById('cart-buyer-pin').value || '';
     const tableNo = document.getElementById('checkout-table-number').value || '';
 
-    // Verify cashier shift is open
+    // Verify waiter/waitress shift is open
     const openShift = await db.shifts.where('status').equals('OPEN').first();
     if (!openShift) {
-      showNotification('No open cashier shift found. Open shift before completing sales.', 'error');
+      showNotification('No open waiter/waitress shift found. Open shift before completing sales.', 'error');
       return;
     }
 
@@ -1099,7 +1099,7 @@ export class TillView {
       <div style="font-size:10px; margin-bottom: 8px;">
         <div><b>Invoice:</b> ${sale.invoice_no}</div>
         <div><b>Date:</b> ${new Date(sale.sold_at).toLocaleString()}</div>
-        <div><b>Cashier:</b> ${state.currentUser.name}</div>
+        <div><b>Waiter/Waitress:</b> ${state.currentUser.name}</div>
         <div><b>Customer:</b> ${selectCustomerName}</div>
         ${sale.buyer_pin ? `<div><b>Buyer PIN:</b> ${sale.buyer_pin}</div>` : ''}
       </div>

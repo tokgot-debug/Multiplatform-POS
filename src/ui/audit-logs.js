@@ -138,7 +138,7 @@ export class AuditLogsView {
       } else if (log.action === 'DISPATCH_REQUISITION') {
         details = `Issued and dispatched requisition stock to counter. Requisition ID: ${log.entity_id.split('-')[0].toUpperCase()}`;
       } else if (log.action === 'SHIFT_OPEN') {
-        details = `Opened a new cashier shift session (Shift ID: ${log.entity_id.split('-')[0].toUpperCase()}).`;
+        details = `Opened a new waiter/waitress shift session (Shift ID: ${log.entity_id.split('-')[0].toUpperCase()}).`;
       } else if (log.action === 'SHIFT_CLOSE_Z') {
         const after = log.after_json ? JSON.parse(log.after_json) : null;
         details = `Closed shifts, generated Z-Report. Counted cash KES ${after?.countedCash || 0} (Variance KES ${after?.cashVariance || 0}).`;

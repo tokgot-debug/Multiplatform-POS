@@ -78,12 +78,12 @@ export class FinanceView {
       '      <div class="m-card orange"><h5>Total Orders</h5><p class="m-val" id="fin-count">0</p></div>',
       '    </div>',
       '    <div class="fin-card">',
-      '      <h3 style="margin:0 0 12px 0;font-size:15px;color:#fff;">👥 Cashier Sales Report</h3>',
+      '      <h3 style="margin:0 0 12px 0;font-size:15px;color:#fff;">👥 Waiter/Waitress Sales Report</h3>',
       '      <div style="overflow-x:auto;">',
       '        <table class="fin-table" style="width:100%; border-collapse:collapse; text-align:left; font-size:13px;">',
       '          <thead>',
       '            <tr>',
-      '              <th>Cashier Name</th>',
+      '              <th>Waiter/Waitress Name</th>',
       '              <th style="text-align:center;">Transactions</th>',
       '              <th style="text-align:right;">Total Sales</th>',
       '            </tr>',
@@ -240,7 +240,7 @@ export class FinanceView {
         if (rows.length === 0) {
           reportBody.innerHTML = `
             <tr>
-              <td colspan="3" style="padding:16px;text-align:center;color:var(--text-secondary);">No cashier sales recorded in this date range.</td>
+              <td colspan="3" style="padding:16px;text-align:center;color:var(--text-secondary);">No waiter/waitress sales recorded in this date range.</td>
             </tr>
           `;
         } else {

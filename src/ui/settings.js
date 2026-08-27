@@ -93,7 +93,7 @@ export class SettingsView {
                       </span>
                     </div>
                     <p style="font-size:12px;color:var(--text-secondary);margin-top:6px;max-width:520px;line-height:1.5;">
-                      When disabled by the owner, cashiers will not see the Cash option at checkout, preventing cash sales and forcing digital/M-Pesa transactions.
+                      When disabled by the owner, waiters/waitresses will not see the Cash option at checkout, preventing cash sales and forcing digital/M-Pesa transactions.
                     </p>
                   </div>
                   ${isOwner ? `
@@ -225,7 +225,7 @@ export class SettingsView {
                     <span id="cash-status-badge" style="font-size:10px;padding:2px 8px;border-radius:12px;font-weight:700;background:${cashEnabled ? 'rgba(16,185,129,.15)' : 'rgba(244,63,94,.15)'};color:${cashEnabled ? 'var(--accent-green)' : 'var(--accent-rose)'};"
                     >${cashEnabled ? 'ENABLED' : 'DISABLED'}</span>
                   </div>
-                  <p style="font-size:12px;color:var(--text-secondary);margin-top:4px;">When disabled, cashiers will not see the Cash option at checkout.</p>
+                  <p style="font-size:12px;color:var(--text-secondary);margin-top:4px;">When disabled, waiters/waitresses will not see the Cash option at checkout.</p>
                 </div>
                 ${isOwner ? `
                   <label style="position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0;">

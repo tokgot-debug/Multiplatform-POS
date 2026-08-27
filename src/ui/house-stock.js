@@ -100,6 +100,13 @@ export class HouseStockView {
   }
 
   async submitRequisition() {
+    const role = state.currentUser?.role;
+    const allowedRequestRoles = ['Bar Staff', 'Supervisor', 'Store Manager', 'Owner'];
+    if (!allowedRequestRoles.includes(role)) {
+      showNotification('Access Denied: Only Waiter/Waitress, Kitchen/Bar staff, Supervisors, or Owners can submit requisitions.', 'error');
+      return;
+    }
+
     const productId = document.getElementById('req-product').value;
     const qty = parseInt(document.getElementById('req-qty').value, 10);
     

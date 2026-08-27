@@ -70,7 +70,7 @@ export class OrdersView {
                   <th style="padding: 16px 24px; font-size: 10px; font-weight: 800; color: var(--text-secondary); text-transform: uppercase;">Date/Time</th>
                   <th style="padding: 16px 24px; font-size: 10px; font-weight: 800; color: var(--text-secondary); text-transform: uppercase;">Order ID</th>
                   <th style="padding: 16px 24px; font-size: 10px; font-weight: 800; color: var(--text-secondary); text-transform: uppercase;">Site & Table</th>
-                  <th style="padding: 16px 24px; font-size: 10px; font-weight: 800; color: var(--text-secondary); text-transform: uppercase;">Cashier</th>
+                  <th style="padding: 16px 24px; font-size: 10px; font-weight: 800; color: var(--text-secondary); text-transform: uppercase;">Waiter/Waitress</th>
                   <th style="padding: 16px 24px; font-size: 10px; font-weight: 800; color: var(--text-secondary); text-transform: uppercase;">Total (KES)</th>
                   <th style="padding: 16px 24px; font-size: 10px; font-weight: 800; color: var(--text-secondary); text-transform: uppercase;">Payment</th>
                   <th style="padding: 16px 24px; font-size: 10px; font-weight: 800; color: var(--text-secondary); text-transform: uppercase;">Status</th>
@@ -440,7 +440,7 @@ export class OrdersView {
       <div style="font-size: 10px; line-height: 1.5;">
         <div><b>Invoice No:</b> ${invNo}</div>
         <div><b>Date:</b> ${new Date(sale.sold_at).toLocaleString()}</div>
-        <div><b>Cashier:</b> ${cashierName}</div>
+        <div><b>Waiter/Waitress:</b> ${cashierName}</div>
         <div><b>Customer:</b> ${customerName}</div>
         <div><b>Serving:</b> ${sale.table_no ? 'TABLE ' + sale.table_no : 'TAKEAWAY'}</div>
       </div>

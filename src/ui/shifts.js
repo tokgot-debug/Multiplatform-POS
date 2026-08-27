@@ -37,7 +37,7 @@ export class ShiftsView {
           <input type="number" id="opening-float-input" value="2000" style="width:100%;background:rgba(3,7,18,0.4);border:1px solid var(--border-color);color:#fff;padding:10px;border-radius:8px;outline:none;">
         </div>
 
-        <button class="checkout-btn" id="open-shift-btn" style="width:100%;">Open Cashier Shift</button>
+        <button class="checkout-btn" id="open-shift-btn" style="width:100%;">Open Waiter/Waitress Shift</button>
       </div>
     `;
   }
@@ -160,7 +160,7 @@ export class ShiftsView {
     
     await logAuditEvent(state.currentTenant.id, state.currentUser.id, 'SHIFT_OPEN', 'SHIFT', shiftId);
 
-    showNotification('Cashier register shift opened.', 'success');
+    showNotification('Waiter/Waitress register shift opened.', 'success');
     this.activeShift = newShift;
     this.renderActiveShiftDetails();
     this.bindEvents();
@@ -259,7 +259,7 @@ export class ShiftsView {
     alert(`
       ========= X-REPORT (MID-SHIFT) =========
       Branch: ${state.currentBranch.name}
-      Cashier: ${state.currentUser.name}
+      Waiter/Waitress: ${state.currentUser.name}
       Opened: ${new Date(this.activeShift.opened_at).toLocaleString()}
       
       Sales Count: ${sales.length}
@@ -275,7 +275,7 @@ export class ShiftsView {
     const countedMpesa = parseFloat(document.getElementById('counted-mpesa-input').value);
 
     if (isNaN(countedCash) || isNaN(countedMpesa)) {
-      showNotification('Please enter counted cashier totals to close shift.', 'warning');
+      showNotification('Please enter counted waiter/waitress totals to close shift.', 'warning');
       return;
     }
 
@@ -301,7 +301,7 @@ export class ShiftsView {
       ========= SEQUENTIAL Z-REPORT =========
       Z-Report ID: Z-${new Date().getTime().toString().slice(-4)}
       Branch: ${state.currentBranch.name}
-      Cashier: ${state.currentUser.name}
+      Waiter/Waitress: ${state.currentUser.name}
       Closed: ${new Date().toLocaleString()}
       
       [CASH RECONCILIATION]
