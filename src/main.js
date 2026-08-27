@@ -302,9 +302,12 @@ document.getElementById('numpad-ok').addEventListener('click', async () => {
     // Hide/Show sidebar buttons based on role
     const role = user.role;
     const restrictedTabs = {
+      'till': ['Owner', 'Store Manager', 'Supervisor', 'Bar Staff', 'Waiter/Waitress'],
+      'shifts': ['Owner', 'Store Manager', 'Supervisor', 'Bar Staff', 'Waiter/Waitress'],
+      'mpesa': ['Owner', 'Store Manager', 'Supervisor'],
       'users': ['Owner', 'Store Manager'],
       'settings': ['Owner', 'Store Manager'],
-      'inventory': ['Owner', 'Store Manager', 'Supervisor', 'Store Keeper'],
+      'inventory': ['Owner', 'Store Manager', 'Supervisor'],
       'store-stock': ['Owner', 'Store Manager', 'Supervisor', 'Store Keeper'],
       'house-stock': ['Owner', 'Store Manager', 'Supervisor', 'Bar Staff'],
       'orders': ['Owner', 'Store Manager', 'Supervisor', 'Bar Staff'],
@@ -312,7 +315,7 @@ document.getElementById('numpad-ok').addEventListener('click', async () => {
       'qrtools': ['Owner', 'Store Manager', 'Supervisor'],
       'audit-logs': ['Owner', 'Store Manager'],
       'subscriptions': ['Owner', 'Store Manager'],
-      'kds': ['Owner', 'Store Manager', 'Supervisor', 'Bar Staff', 'Store Keeper'],
+      'kds': ['Owner', 'Store Manager', 'Supervisor', 'Bar Staff'],
       'procurement': ['Owner', 'Store Manager'],
       'customers': ['Owner', 'Store Manager', 'Supervisor']
     };
@@ -330,7 +333,11 @@ document.getElementById('numpad-ok').addEventListener('click', async () => {
     await logAuditEvent(state.currentTenant.id, user.id, 'LOGIN', 'USER', user.id);
 
     // Load default tab
-    switchTab('till');
+    if (role === 'Store Keeper') {
+      switchTab('store-stock');
+    } else {
+      switchTab('till');
+    }
 
     // Run background stock alert check after login
     setTimeout(async () => {
