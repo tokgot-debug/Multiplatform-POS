@@ -128,8 +128,7 @@
 
       <!-- Navigation Domains -->
       <nav class="sidebar-nav">
-        <!-- Access Domain -->
-        <div class="nav-section-title">Access & Setup</div>
+        <!-- Command Center (Direct active link) -->
         <a href="#" class="nav-link active" data-target="dashboard-view">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="3" y="3" width="7" height="9"/>
@@ -139,144 +138,212 @@
           </svg>
           <span>Command Center</span>
         </a>
-        <a href="#" class="nav-link" data-target="client-records-view">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-            <circle cx="9" cy="7" r="4"/>
-            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-          </svg>
-          <span>Client Records (M4)</span>
-        </a>
 
-        <!-- Operations Domain -->
-        <div class="nav-section-title">Operations</div>
-        <a href="#" class="nav-link" data-target="counseling-wizard-view">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
-            <rect x="9" y="3" width="6" height="4" rx="1" ry="1"/>
-            <path d="M9 14l2 2 4-4"/>
-          </svg>
-          <span>Counseling Wizard</span>
-        </a>
-        <a href="#" class="nav-link" data-target="kairos-view">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-            <line x1="16" y1="2" x2="16" y2="6"/>
-            <line x1="8" y1="2" x2="8" y2="6"/>
-            <line x1="3" y1="10" x2="21" y2="10"/>
-          </svg>
-          <span>Kairos Scheduler (M13)</span>
-        </a>
+        <!-- Group 1: Access & Scheduling -->
+        <div class="nav-group collapsed">
+          <div class="nav-group-header">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+              <line x1="16" y1="2" x2="16" y2="6"/>
+              <line x1="8" y1="2" x2="8" y2="6"/>
+              <line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+            <span>Access & Scheduling</span>
+            <svg class="group-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </div>
+          <div class="nav-group-links">
+            <a href="#" class="nav-link" data-target="client-records-view">
+              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+              <span>Client Records (M4)</span>
+            </a>
+            <a href="#" class="nav-link" data-target="kairos-view">
+              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                <line x1="16" y1="2" x2="16" y2="6"/>
+                <line x1="8" y1="2" x2="8" y2="6"/>
+                <line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
+              <span>Kairos Scheduler (M13)</span>
+            </a>
+          </div>
+        </div>
 
-        <!-- Clinical Domain -->
-        <div class="nav-section-title">Clinical Core</div>
-        <a href="#" class="nav-link" data-target="trajectory-view">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M3 3v18h18"/>
-            <path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"/>
-          </svg>
-          <span>Trajectory Outcomes (M8)</span>
-        </a>
-        
-        <a href="#" class="nav-link" data-target="sage-view">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/>
-            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-            <line x1="12" y1="19" x2="12" y2="22"/>
-          </svg>
-          <span>Sage AI Assist (M21)</span>
-        </a>
-        <a href="#" class="nav-link" data-target="modality-view">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="2" y="2" width="20" height="8" rx="2" ry="2"/>
-            <path d="M7 22V14"/>
-            <path d="M17 22V14"/>
-            <path d="M2 14h20"/>
-          </svg>
-          <span>Modality Canvas (M11)</span>
-        </a>
+        <!-- Group 2: Clinical Workflow -->
+        <div class="nav-group collapsed">
+          <div class="nav-group-header">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+              <rect x="9" y="3" width="6" height="4" rx="1" ry="1"/>
+              <path d="M9 14l2 2 4-4"/>
+            </svg>
+            <span>Clinical Workflow</span>
+            <svg class="group-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </div>
+          <div class="nav-group-links">
+            <a href="#" class="nav-link" data-target="counseling-wizard-view">
+              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+                <rect x="9" y="3" width="6" height="4" rx="1" ry="1"/>
+                <path d="M9 14l2 2 4-4"/>
+              </svg>
+              <span>Counseling Wizard</span>
+            </a>
+            <a href="#" class="nav-link" data-target="modality-view">
+              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="2" width="20" height="8" rx="2" ry="2"/>
+                <path d="M7 22V14"/>
+                <path d="M17 22V14"/>
+                <path d="M2 14h20"/>
+              </svg>
+              <span>Modality Canvas (M11)</span>
+            </a>
+            <a href="#" class="nav-link" data-target="client-homework-view">
+              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 20h9"/>
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+              </svg>
+              <span>Homework Portal (M14)</span>
+            </a>
+            <a href="#" class="nav-link" data-target="sage-view">
+              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                <line x1="12" y1="19" x2="12" y2="22"/>
+              </svg>
+              <span>Sage AI Assist (M21)</span>
+            </a>
+          </div>
+        </div>
 
-        <!-- Intelligence & Governance -->
-        <div class="nav-section-title">Intelligence & Governance</div>
-        <a href="#" class="nav-link" data-target="athenaeum-view">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-          </svg>
-          <span>Athenaeum Library (M20)</span>
-        </a>
-        <a href="#" class="nav-link" data-target="audit-view">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"/>
-            <polyline points="12 6 12 12 16 14"/>
-          </svg>
-          <span>Compliance Ledger (M22)</span>
-        </a>
-        <a href="#" class="nav-link" data-target="supervision-view">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polygon points="23 7 16 12 23 17 23 7"/>
-            <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
-          </svg>
-          <span>Case Supervision (M12)</span>
-        </a>
-        <a href="#" class="nav-link" data-target="fhir-view">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
-          </svg>
-          <span>FHIR Interop (M19)</span>
-        </a>
+        <!-- Group 3: Outcomes & Supervision -->
+        <div class="nav-group collapsed">
+          <div class="nav-group-header">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 3v18h18"/>
+              <path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"/>
+            </svg>
+            <span>Outcomes & Supervision</span>
+            <svg class="group-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </div>
+          <div class="nav-group-links">
+            <a href="#" class="nav-link" data-target="trajectory-view">
+              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 3v18h18"/>
+                <path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"/>
+              </svg>
+              <span>Trajectory Outcomes (M8)</span>
+            </a>
+            <a href="#" class="nav-link" data-target="supervision-view">
+              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="23 7 16 12 23 17 23 7"/>
+                <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+              </svg>
+              <span>Case Supervision (M12)</span>
+            </a>
+          </div>
+        </div>
 
-        <!-- Business Domain -->
-        <div class="nav-section-title">Business</div>
-        <a href="#" class="nav-link" data-target="billing-view">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="2" y="4" width="20" height="16" rx="2" ry="2"/>
-            <line x1="12" y1="4" x2="12" y2="20"/>
-            <line x1="2" y1="12" x2="22" y2="12"/>
-          </svg>
-          <span>Billing & eTIMS (M18)</span>
-        </a>
-        <a href="#" class="nav-link" data-target="reporting-view">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="18" y1="20" x2="18" y2="10"/>
-            <line x1="12" y1="20" x2="12" y2="4"/>
-            <line x1="6" y1="20" x2="6" y2="14"/>
-          </svg>
-          <span>Reporting & AI (M18)</span>
-        </a>
-        <a href="#" class="nav-link" data-target="client-homework-view">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 20h9"/>
-            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
-          </svg>
-          <span>Homework Portal (M14)</span>
-        </a>
+        <!-- Group 4: Business & Inventory -->
+        <div class="nav-group collapsed">
+          <div class="nav-group-header">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="4" width="20" height="16" rx="2" ry="2"/>
+              <line x1="12" y1="4" x2="12" y2="20"/>
+              <line x1="2" y1="12" x2="22" y2="12"/>
+            </svg>
+            <span>Business & Inventory</span>
+            <svg class="group-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </div>
+          <div class="nav-group-links">
+            <a href="#" class="nav-link" data-target="billing-view">
+              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="4" width="20" height="16" rx="2" ry="2"/>
+                <line x1="12" y1="4" x2="12" y2="20"/>
+                <line x1="2" y1="12" x2="22" y2="12"/>
+              </svg>
+              <span>Billing & eTIMS (M18)</span>
+            </a>
+            <a href="#" class="nav-link" data-target="reporting-view">
+              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="20" x2="18" y2="10"/>
+                <line x1="12" y1="20" x2="12" y2="4"/>
+                <line x1="6" y1="20" x2="6" y2="14"/>
+              </svg>
+              <span>Reporting & AI (M18)</span>
+            </a>
+            <a href="#" class="nav-link" data-target="stock-ledger-view">
+              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                <polyline points="22,6 12,13 2,6"/>
+              </svg>
+              <span>Stock Ledger</span>
+            </a>
+            <a href="#" class="nav-link" data-target="stock-takes-view">
+              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="9 11 12 14 22 4"/>
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+              </svg>
+              <span>Stock Takes (Counts)</span>
+            </a>
+            <a href="#" class="nav-link" data-target="batch-expiries-view">
+              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12 6 12 12 16 14"/>
+              </svg>
+              <span>Batch & Expiries</span>
+            </a>
+          </div>
+        </div>
 
-        <!-- Inventory Domain -->
-        <div class="nav-section-title">Inventory</div>
-        <a href="#" class="nav-link" data-target="stock-ledger-view">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-            <polyline points="22,6 12,13 2,6"/>
-          </svg>
-          <span>Stock Ledger</span>
-        </a>
-        <a href="#" class="nav-link" data-target="stock-takes-view">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="9 11 12 14 22 4"/>
-            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
-          </svg>
-          <span>Stock Takes (Counts)</span>
-        </a>
-        <a href="#" class="nav-link" data-target="batch-expiries-view">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"/>
-            <polyline points="12 6 12 12 16 14"/>
-          </svg>
-          <span>Batch & Expiries</span>
-        </a>
+        <!-- Group 5: Intelligence & Governance -->
+        <div class="nav-group collapsed">
+          <div class="nav-group-header">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+            </svg>
+            <span>Intelligence & Governance</span>
+            <svg class="group-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </div>
+          <div class="nav-group-links">
+            <a href="#" class="nav-link" data-target="athenaeum-view">
+              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+              </svg>
+              <span>Athenaeum Library (M20)</span>
+            </a>
+            <a href="#" class="nav-link" data-target="audit-view">
+              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12 6 12 12 16 14"/>
+              </svg>
+              <span>Compliance Ledger (M22)</span>
+            </a>
+            <a href="#" class="nav-link" data-target="fhir-view">
+              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+              </svg>
+              <span>FHIR Interop (M19)</span>
+            </a>
+          </div>
+        </div>
       </nav>
 
       <div class="sidebar-footer">
@@ -1184,7 +1251,7 @@
                   </div>
                   <p class="subtitle-text text-warning mt-2" style="font-size: 0.8rem; color: var(--warning-color);">Double-entry compliant. Cancellations generate structural Credit Notes, never edits.</p>
                   
-                  <button class="btn btn-outline w-100 mt-3 hidden" id="btn-open-receipt" style="border-color: var(--success-color); color: var(--success-color); font-weight: bold; background: transparent;">View KRA eTIMS Fiscal Receipt</button>
+                  <button class="btn btn-outline w-100 mt-3 hidden" id="btn-open-receipt" style="border-color: var(--success-color); color: var(--success-color); font-weight: bold; background: transparent; margin-bottom: 1.5rem;">View KRA eTIMS Fiscal Receipt</button>
                 </div>
               </div>
 

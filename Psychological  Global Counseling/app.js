@@ -519,6 +519,12 @@ document.querySelectorAll('.nav-link').forEach(link => {
     document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
     link.classList.add('active');
 
+    // Automatically expand the parent group if this link is nested
+    const parentGroup = link.closest('.nav-group');
+    if (parentGroup) {
+      parentGroup.classList.remove('collapsed');
+    }
+
     // Switch view panel
     document.querySelectorAll('.view-panel').forEach(panel => panel.classList.remove('active'));
     document.getElementById(target).classList.add('active');
@@ -2374,6 +2380,23 @@ aiReportBtn.addEventListener('click', () => {
 // --- 21. INITIATE ENGINE ON DOM READY ---
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Collapsible Nav Groups: Toggle collapsed state on header click
+  document.querySelectorAll('.nav-group-header').forEach(header => {
+    header.addEventListener('click', () => {
+      const parent = header.parentElement;
+      parent.classList.toggle('collapsed');
+    });
+  });
+
+  // Ensure active view's nav-group is expanded by default
+  const activeLink = document.querySelector('.nav-link.active');
+  if (activeLink) {
+    const parentGroup = activeLink.closest('.nav-group');
+    if (parentGroup) {
+      parentGroup.classList.remove('collapsed');
+    }
+  }
+
   populateTrajectoryClients();
   applyRBACPermissions();
   renderAlertPills();

@@ -446,7 +446,7 @@ export class TillView {
       card.setAttribute('data-barcode', barcodeVal);
 
       card.innerHTML = `
-        <div style="height: 120px; border-radius: 8px; margin-bottom: 8px; background: url('${prod.image_data ? (prod.image_data.includes('?') ? prod.image_data : prod.image_data + '?v=2') : '/ai_images/juice_glass.jpg'}') center/cover no-repeat; border: 1px solid rgba(255, 255, 255, 0.05); display: flex; align-items: center; justify-content: center;">
+        <div style="height: 120px; flex-shrink: 0; border-radius: 8px; margin-bottom: 8px; background: url('${prod.image_data ? (prod.image_data.includes('?') ? prod.image_data : prod.image_data + '?v=2') : '/ai_images/juice_glass.jpg'}') center/cover no-repeat; border: 1px solid rgba(255, 255, 255, 0.05); display: flex; align-items: center; justify-content: center;">
           ${!prod.image_data ? '<span style="font-size:24px; opacity:0.3;">📷</span>' : ''}
         </div>
         <div>
