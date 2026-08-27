@@ -39,3 +39,7 @@ db.version(3).stores({
   requisitions: 'id, tenant_id, branch_id, status, created_at',
   req_lines: 'id, req_id, product_id'
 });
+
+db.version(4).stores({
+  expenses: 'id, tenant_id, branch_id, shift_id, category, amount, created_at'
+});

@@ -1,341 +1,477 @@
 import { db } from '../db/schema';
-import { logAuditEvent } from '../db/index';
 import { state, showNotification } from '../context';
+import { logAuditEvent, getStoreStock } from '../db/index';
 
 export class ProcurementView {
   constructor(container) {
     this.container = container;
-    this.activeSubTab = 'requisitions'; // requisitions, orders, grns
   }
 
   async load() {
     this.render();
+    await this.loadSuppliers();
+    await this.loadProductsDropdown();
+    await this.loadActivePOs();
     this.bindEvents();
-    await this.loadSubTab();
   }
 
   render() {
     this.container.innerHTML = `
-      <div class="view-header">
-        <h2>Procurement & Supplier Management</h2>
-      </div>
-
-      <div class="split-pane">
-        <!-- Sidebar Navigation -->
-        <div class="pane-nav">
-          <button class="pane-nav-btn active" data-sub="requisitions">Requisitions</button>
-          <button class="pane-nav-btn" data-sub="orders">Purchase Orders</button>
-          <button class="pane-nav-btn" data-sub="grns">Goods Receipts (GRNs)</button>
+      <div style="padding: 24px; color: var(--text-primary); max-width: 1200px; margin: 0 auto; font-family: var(--font-main);">
+        
+        <!-- Header -->
+        <div style="margin-bottom: 28px;">
+          <h2 style="font-family: var(--font-display); font-size: 24px; font-weight: 800; color: #fff; margin-bottom: 6px;">📦 Procurement &amp; Supplier Management</h2>
+          <p style="color: var(--text-secondary); font-size: 13px;">Manage product cost pricing, draft purchase orders (PO), and approve goods received notes (GRN) to increase store inventory.</p>
         </div>
 
-        <!-- Working Area -->
-        <div class="pane-content" id="procurement-pane-content">
-          <!-- Loaded dynamically -->
+        <div style="display: grid; grid-template-columns: 1fr 380px; gap: 24px; align-items: flex-start;">
+          
+          <!-- Left Column: Draft PO & Active POs -->
+          <div style="display: flex; flex-direction: column; gap: 24px;">
+            
+            <!-- Active PO Registry -->
+            <div style="background: var(--bg-element); border: 1px solid var(--border-color); border-radius: 16px; padding: 24px; box-shadow: var(--glass-shadow);">
+              <h3 style="margin-top: 0; margin-bottom: 16px; font-size: 15px; color: #fff;">📦 Open Purchase Orders &amp; GRN Intake</h3>
+              <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px;">
+                  <thead>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.06); color: var(--text-secondary);">
+                      <th style="padding: 10px 8px;">Order No</th>
+                      <th style="padding: 10px 8px;">Supplier</th>
+                      <th style="padding: 10px 8px;">Items</th>
+                      <th style="padding: 10px 8px;">Status</th>
+                      <th style="padding: 10px 8px; text-align: right;">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="po-registry-body">
+                    <!-- Loaded dynamically -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Draft Purchase Order Builder -->
+            <div style="background: var(--bg-element); border: 1px solid var(--border-color); border-radius: 16px; padding: 24px; box-shadow: var(--glass-shadow);">
+              <h3 style="margin-top: 0; margin-bottom: 16px; font-size: 15px; color: #fff;">✍️ Draft New Purchase Order</h3>
+              
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                <div>
+                  <label style="display: block; font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px;">Select Supplier</label>
+                  <select id="po-supplier-select" style="width: 100%; background: rgba(3,7,18,0.4); border: 1px solid var(--border-color); color: #fff; padding: 8px 12px; border-radius: 6px; outline: none;">
+                    <!-- Loaded dynamically -->
+                  </select>
+                </div>
+                <div>
+                  <label style="display: block; font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px;">PO Reference No</label>
+                  <input type="text" id="po-ref-no" placeholder="e.g. PO-2026-001" style="width: 100%; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 6px; padding: 8px 12px; color: #fff; font-size: 13px; outline: none; font-family: monospace;">
+                </div>
+              </div>
+
+              <!-- Product Line Adder -->
+              <div style="border: 1px dashed var(--border-color); border-radius: 8px; padding: 12px; margin-bottom: 16px; background: rgba(255,255,255,0.01);">
+                <h4 style="margin: 0 0 10px 0; font-size: 12px; color: #fff;">Add Line Item</h4>
+                <div style="display: grid; grid-template-columns: 1fr 100px 120px 80px; gap: 10px; align-items: flex-end;">
+                  <div>
+                    <label style="display: block; font-size: 10px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px;">Product</label>
+                    <select id="po-product-select" style="width: 100%; background: rgba(3,7,18,0.4); border: 1px solid var(--border-color); color: #fff; padding: 6px; border-radius: 4px; outline: none; font-size: 12px;"></select>
+                  </div>
+                  <div>
+                    <label style="display: block; font-size: 10px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px;">Qty (Units)</label>
+                    <input type="number" id="po-line-qty" value="10" min="1" style="width: 100%; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 4px; padding: 6px; color: #fff; font-size: 12px; outline: none; text-align: center;">
+                  </div>
+                  <div>
+                    <label style="display: block; font-size: 10px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px;">Purchase Cost (KES)</label>
+                    <input type="number" id="po-line-cost" value="100" min="1" style="width: 100%; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 4px; padding: 6px; color: #fff; font-size: 12px; outline: none; text-align: center;">
+                  </div>
+                  <button type="button" id="btn-add-po-line" style="background: rgba(56, 189, 248, 0.15); border: 1px solid var(--accent-cyan); color: var(--accent-cyan); font-weight: 700; padding: 7px; border-radius: 4px; font-size: 12px; cursor: pointer;">
+                    ➕ Add
+                  </button>
+                </div>
+              </div>
+
+              <!-- Draft Lines Table -->
+              <div style="margin-bottom: 16px;">
+                <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 12px;">
+                  <thead>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.06); color: var(--text-secondary);">
+                      <th style="padding: 6px;">Product</th>
+                      <th style="padding: 6px; text-align: center;">Qty</th>
+                      <th style="padding: 6px; text-align: right;">Unit Cost</th>
+                      <th style="padding: 6px; text-align: right;">Total Cost</th>
+                      <th style="padding: 6px; text-align: right;">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="po-draft-lines">
+                    <!-- Added lines show here -->
+                  </tbody>
+                </table>
+              </div>
+
+              <div style="display: flex; justify-content: flex-end; gap: 12px;">
+                <button type="button" id="btn-submit-po" style="background: var(--accent-green); color: #fff; border: none; padding: 10px 20px; border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s;">
+                  💾 Create &amp; Log Purchase Order
+                </button>
+              </div>
+
+            </div>
+
+          </div>
+
+          <!-- Right Column: Supplier Administration -->
+          <div style="display: flex; flex-direction: column; gap: 24px;">
+            
+            <!-- Register Supplier Card -->
+            <div style="background: var(--bg-element); border: 1px solid var(--border-color); border-radius: 16px; padding: 24px; box-shadow: var(--glass-shadow);">
+              <h3 style="margin-top: 0; margin-bottom: 16px; font-size: 15px; color: #fff;">🏢 Register Supplier</h3>
+              <form id="supplier-reg-form" style="display: flex; flex-direction: column; gap: 12px;">
+                <div>
+                  <label style="display: block; font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px;">Supplier / Distributor Name</label>
+                  <input type="text" id="sup-name" placeholder="e.g. East African Breweries" required style="width: 100%; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 6px; padding: 8px 12px; color: #fff; font-size: 13px; outline: none;">
+                </div>
+                <div>
+                  <label style="display: block; font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px;">KRA PIN</label>
+                  <input type="text" id="sup-kra" placeholder="e.g. P051234567A" required style="width: 100%; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 6px; padding: 8px 12px; color: #fff; font-size: 13px; outline: none;">
+                </div>
+                <button type="submit" style="background: var(--accent-cyan); color: #000; border: none; padding: 10px; border-radius: 6px; font-size: 13px; font-weight: 800; cursor: pointer; transition: all 0.2s; margin-top: 6px;">
+                  ➕ Save Supplier Profile
+                </button>
+              </form>
+            </div>
+
+            <!-- Suppliers Directory list -->
+            <div style="background: var(--bg-element); border: 1px solid var(--border-color); border-radius: 16px; padding: 24px; box-shadow: var(--glass-shadow);">
+              <h3 style="margin-top: 0; margin-bottom: 12px; font-size: 15px; color: #fff;">📋 Registered Suppliers</h3>
+              <div style="max-height: 250px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;" id="suppliers-list-container">
+                <!-- Loaded dynamically -->
+              </div>
+            </div>
+
+          </div>
+
         </div>
+
       </div>
     `;
+
+    this.draftLines = [];
+  }
+
+  async loadSuppliers() {
+    if (!state.currentTenant) return;
+
+    const suppliers = await db.suppliers.where('tenant_id').equals(state.currentTenant.id).toArray();
+    
+    // Populate select
+    const select = document.getElementById('po-supplier-select');
+    select.innerHTML = '';
+    suppliers.forEach(sup => {
+      const opt = document.createElement('option');
+      opt.value = sup.id;
+      opt.textContent = sup.name;
+      select.appendChild(opt);
+    });
+
+    // Populate list
+    const list = document.getElementById('suppliers-list-container');
+    if (suppliers.length === 0) {
+      list.innerHTML = `<div style="font-size:12px;color:var(--text-muted);text-align:center;">No suppliers registered yet.</div>`;
+      return;
+    }
+
+    list.innerHTML = '';
+    suppliers.forEach(sup => {
+      const item = document.createElement('div');
+      item.style.cssText = `
+        background: rgba(255,255,255,0.01);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      `;
+      item.innerHTML = `
+        <div>
+          <strong style="color:#fff;font-size:13px;">${sup.name}</strong>
+          <div style="font-size:11px;color:var(--text-muted);font-family:monospace;margin-top:2px;">KRA PIN: ${sup.kra_pin}</div>
+        </div>
+      `;
+      list.appendChild(item);
+    });
+  }
+
+  async loadProductsDropdown() {
+    if (!state.currentTenant) return;
+
+    const products = await db.products.where('tenant_id').equals(state.currentTenant.id).toArray();
+    const select = document.getElementById('po-product-select');
+    select.innerHTML = '';
+    products.forEach(p => {
+      if (!p.is_service) {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = `${p.name} (SKU: ${p.sku})`;
+        select.appendChild(opt);
+      }
+    });
+  }
+
+  async loadActivePOs() {
+    if (!state.currentTenant) return;
+
+    const pos = await db.purchase_orders.where('tenant_id').equals(state.currentTenant.id).toArray();
+    pos.sort((a,b) => b.order_no.localeCompare(a.order_no));
+
+    const tbody = document.getElementById('po-registry-body');
+    if (pos.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="5" style="text-align:center;color:var(--text-muted);padding:24px;">No PO records found.</td>
+        </tr>
+      `;
+      return;
+    }
+
+    tbody.innerHTML = '';
+    for (const po of pos) {
+      const supplier = await db.suppliers.get(po.supplier_id);
+      const lines = await db.po_lines.where('po_id').equals(po.id).toArray();
+      const statusBadgeColor = po.status === 'RECEIVED' ? 'var(--accent-green)' : 'var(--accent-amber)';
+
+      const tr = document.createElement('tr');
+      tr.style.borderBottom = '1px solid rgba(255,255,255,0.04)';
+      tr.innerHTML = `
+        <td style="padding:10px 8px;font-family:monospace;color:#fff;">${po.order_no}</td>
+        <td style="padding:10px 8px;">${supplier ? supplier.name : 'N/A'}</td>
+        <td style="padding:10px 8px;color:var(--text-secondary);">${lines.length} lines</td>
+        <td style="padding:10px 8px;">
+          <span style="font-size:11px;font-weight:700;color:${statusBadgeColor};text-transform:uppercase;">${po.status}</span>
+        </td>
+        <td style="padding:10px 8px;text-align:right;">
+          ${po.status === 'PENDING' ? `
+            <button class="btn-receive-grn" data-po-id="${po.id}" style="background:var(--accent-green);color:#fff;border:none;padding:5px 10px;border-radius:4px;font-size:11px;font-weight:800;cursor:pointer;">
+              ✔️ Receive &amp; GRN
+            </button>
+          ` : '<span style="font-size:12px;color:var(--text-muted);">Asset Cleared</span>'}
+        </td>
+      `;
+      tbody.appendChild(tr);
+    }
+
+    // Bind GRN action
+    tbody.querySelectorAll('.btn-receive-grn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const poId = btn.getAttribute('data-po-id');
+        await this.receiveGoods(poId);
+      });
+    });
   }
 
   bindEvents() {
-    this.container.querySelectorAll('.pane-nav-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        this.container.querySelectorAll('.pane-nav-btn').forEach(b => b.classList.remove('active'));
-        e.target.classList.add('active');
-        this.activeSubTab = e.target.getAttribute('data-sub');
-        this.loadSubTab();
-      });
-    });
-  }
+    // 1. Supplier registry
+    const supForm = document.getElementById('supplier-reg-form');
+    if (supForm) {
+      supForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const name = document.getElementById('sup-name').value.trim();
+        const kra = document.getElementById('sup-kra').value.trim();
 
-  async loadSubTab() {
-    const pane = document.getElementById('procurement-pane-content');
-    
-    if (this.activeSubTab === 'requisitions') {
-      await this.renderRequisitions(pane);
-    } else if (this.activeSubTab === 'orders') {
-      await this.renderOrders(pane);
-    } else if (this.activeSubTab === 'grns') {
-      await this.renderGrns(pane);
+        try {
+          const supplierId = `sup-${crypto.randomUUID().slice(0,8)}`;
+          await db.suppliers.add({
+            id: supplierId,
+            tenant_id: state.currentTenant.id,
+            name,
+            kra_pin: kra
+          });
+
+          await logAuditEvent(state.currentTenant.id, state.currentUser.id, 'CREATE_SUPPLIER', 'SUPPLIER', supplierId);
+          showNotification('Supplier registered.', 'success');
+          supForm.reset();
+          await this.loadSuppliers();
+        } catch (err) {
+          showNotification(err.message, 'error');
+        }
+      });
+    }
+
+    // 2. Add PO Line
+    const addLineBtn = document.getElementById('btn-add-po-line');
+    if (addLineBtn) {
+      addLineBtn.addEventListener('click', async () => {
+        const prodId = document.getElementById('po-product-select').value;
+        const qty = parseInt(document.getElementById('po-line-qty').value) || 0;
+        const cost = parseFloat(document.getElementById('po-line-cost').value) || 0;
+
+        if (!prodId || qty <= 0 || cost <= 0) {
+          showNotification('Please enter a valid product, quantity, and cost price.', 'error');
+          return;
+        }
+
+        const prod = await db.products.get(prodId);
+        if (!prod) return;
+
+        // Check if duplicate line
+        const existingIdx = this.draftLines.findIndex(l => l.product_id === prodId);
+        if (existingIdx !== -1) {
+          this.draftLines[existingIdx].qty += qty;
+        } else {
+          this.draftLines.push({
+            product_id: prodId,
+            product_name: prod.name,
+            qty,
+            cost_price: cost
+          });
+        }
+
+        this.renderDraftLines();
+      });
+    }
+
+    // 3. Submit PO
+    const submitBtn = document.getElementById('btn-submit-po');
+    if (submitBtn) {
+      submitBtn.addEventListener('click', async () => {
+        const supplierId = document.getElementById('po-supplier-select').value;
+        const refNo = document.getElementById('po-ref-no').value.trim();
+
+        if (!supplierId || this.draftLines.length === 0 || !refNo) {
+          showNotification('Please select a supplier, enter a reference no, and add draft line items.', 'warning');
+          return;
+        }
+
+        try {
+          const poId = `po-${crypto.randomUUID().slice(0,8)}`;
+          
+          await db.transaction('rw', db.purchase_orders, db.po_lines, async () => {
+            await db.purchase_orders.add({
+              id: poId,
+              tenant_id: state.currentTenant.id,
+              supplier_id: supplierId,
+              order_no: refNo,
+              status: 'PENDING',
+              created_at: new Date().toISOString()
+            });
+
+            for (const line of this.draftLines) {
+              await db.po_lines.add({
+                id: `pol-${crypto.randomUUID().slice(0,8)}`,
+                po_id: poId,
+                product_id: line.product_id,
+                qty: line.qty,
+                cost_price: line.cost_price
+              });
+            }
+          });
+
+          await logAuditEvent(state.currentTenant.id, state.currentUser.id, 'CREATE_PO', 'PURCHASE_ORDER', poId);
+          showNotification('Purchase order created successfully.', 'success');
+          
+          this.draftLines = [];
+          this.renderDraftLines();
+          document.getElementById('po-ref-no').value = '';
+          await this.loadActivePOs();
+
+        } catch (err) {
+          console.error(err);
+          showNotification('Failed to save PO: ' + err.message, 'error');
+        }
+      });
     }
   }
 
-  async renderRequisitions(pane) {
-    const list = await db.requisitions.toArray();
-    
-    pane.innerHTML = `
-      <div class="control-bar">
-        <button class="primary-btn" id="new-req-btn">+ Create Requisition</button>
-      </div>
+  renderDraftLines() {
+    const tbody = document.getElementById('po-draft-lines');
+    tbody.innerHTML = '';
 
-      <div class="table-wrapper">
-        <table class="pos-table">
-          <thead>
-            <tr>
-              <th>Item Requested</th>
-              <th>Qty</th>
-              <th>Justification</th>
-              <th>Created By</th>
-              <th>Status</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody id="reqs-tbody">
-            ${list.length === 0 ? '<tr><td colspan="6" style="text-align:center;">No requisitions raised.</td></tr>' : ''}
-            ${list.map(r => `
-              <tr>
-                <td style="font-weight:600;">${r.item}</td>
-                <td>${r.qty}</td>
-                <td>${r.justification}</td>
-                <td>Wanjiku Kamau</td>
-                <td>
-                  <span class="badge ${r.status === 'APPROVED' ? 'success' : (r.status === 'REJECTED' ? 'danger' : 'warning')}">
-                    ${r.status}
-                  </span>
-                </td>
-                <td>
-                  ${r.status === 'PENDING' ? `
-                    <button class="primary-btn approve-req-btn" data-id="${r.id}" style="padding:4px 8px;font-size:10px;">Approve</button>
-                  ` : `<span style="color:var(--text-muted)">Closed</span>`}
-                </td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      </div>
-    `;
+    if (this.draftLines.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="5" style="text-align:center;color:var(--text-muted);padding:10px;">Draft is empty. Add a line above.</td>
+        </tr>
+      `;
+      return;
+    }
 
-    document.getElementById('new-req-btn').addEventListener('click', async () => {
-      const item = prompt('Enter Item Name or SKU:');
-      if (!item) return;
-      const qty = parseInt(prompt('Quantity:'));
-      if (isNaN(qty)) return;
-      const justification = prompt('Justification / Need-by date:');
-
-      await db.requisitions.add({
-        id: crypto.randomUUID(),
-        tenant_id: state.currentTenant.id,
-        branch_id: state.currentBranch.id,
-        item,
-        qty,
-        justification: justification || 'Stock replenishment',
-        status: 'PENDING',
-        created_by: state.currentUser.id
-      });
-
-      showNotification('Requisition submitted for approval.', 'success');
-      this.loadSubTab();
+    this.draftLines.forEach((line, idx) => {
+      const tr = document.createElement('tr');
+      tr.style.borderBottom = '1px solid rgba(255,255,255,0.03)';
+      const total = line.qty * line.cost_price;
+      tr.innerHTML = `
+        <td style="padding:6px;">${line.product_name}</td>
+        <td style="padding:6px;text-align:center;">${line.qty}</td>
+        <td style="padding:6px;text-align:right;">KES ${line.cost_price.toFixed(2)}</td>
+        <td style="padding:6px;text-align:right;">KES ${total.toFixed(2)}</td>
+        <td style="padding:6px;text-align:right;">
+          <button class="btn-remove-po-line" data-idx="${idx}" style="background:transparent;border:none;color:var(--accent-rose);cursor:pointer;font-size:12px;">❌ Remove</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
     });
 
-    pane.querySelectorAll('.approve-req-btn').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        const reqId = e.target.getAttribute('data-id');
-        const req = await db.requisitions.get(reqId);
-        
-        // NO SELF-APPROVAL ENFORCED SERVER/DB LAYER
-        if (req.created_by === state.currentUser.id) {
-          showNotification('Dual Control rule breached. You cannot approve your own requisitions.', 'error');
-          return;
-        }
-
-        await db.requisitions.update(reqId, {
-          status: 'APPROVED',
-          approved_by: state.currentUser.id
-        });
-
-        await logAuditEvent(state.currentTenant.id, state.currentUser.id, 'APPROVE_REQUISITION', 'REQUISITION', reqId);
-        showNotification('Requisition approved.', 'success');
-        this.loadSubTab();
+    tbody.querySelectorAll('.btn-remove-po-line').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.getAttribute('data-idx'));
+        this.draftLines.splice(idx, 1);
+        this.renderDraftLines();
       });
     });
   }
 
-  async renderOrders(pane) {
-    const list = await db.purchase_orders.toArray();
-    const suppliers = new Map((await db.suppliers.toArray()).map(s => [s.id, s.name]));
+  async receiveGoods(poId) {
+    try {
+      const po = await db.purchase_orders.get(poId);
+      if (!po || po.status === 'RECEIVED') return;
 
-    pane.innerHTML = `
-      <div class="control-bar">
-        <button class="primary-btn" id="new-po-btn">+ Raise PO</button>
-      </div>
+      const lines = await db.po_lines.where('po_id').equals(poId).toArray();
 
-      <div class="table-wrapper">
-        <table class="pos-table">
-          <thead>
-            <tr>
-              <th>PO Number</th>
-              <th>Supplier</th>
-              <th>Total Amount</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="po-tbody">
-            ${list.length === 0 ? '<tr><td colspan="5" style="text-align:center;">No Purchase Orders raised.</td></tr>' : ''}
-            ${list.map(po => `
-              <tr>
-                <td style="font-family:monospace;font-weight:600;">${po.order_no}</td>
-                <td>${suppliers.get(po.supplier_id) || 'Unknown Supplier'}</td>
-                <td>KES ${po.total_amount.toFixed(2)}</td>
-                <td>
-                  <span class="badge ${po.status === 'APPROVED' ? 'success' : 'warning'}">${po.status}</span>
-                </td>
-                <td>
-                  ${po.status === 'PENDING' ? `
-                    <button class="primary-btn approve-po-btn" data-id="${po.id}" style="padding:4px 8px;font-size:10px;">Approve PO</button>
-                  ` : `<span style="color:var(--text-muted)">Closed</span>`}
-                </td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      </div>
-    `;
+      await db.transaction('rw', [db.purchase_orders, db.stock_movements, db.products], async () => {
+        // A. Set PO status to RECEIVED
+        await db.purchase_orders.update(poId, { status: 'RECEIVED' });
 
-    document.getElementById('new-po-btn').addEventListener('click', async () => {
-      const suppliersList = await db.suppliers.toArray();
-      if (suppliersList.length === 0) {
-        showNotification('Please add suppliers in the Admin view first.', 'error');
-        return;
-      }
+        // B. Loop lines to record stock in and update Cost Price dynamically (WAC)
+        for (const line of lines) {
+          const product = await db.products.get(line.product_id);
+          if (!product) continue;
 
-      const orderNo = `PO-2026-${Math.floor(Math.random() * 9000 + 1000)}`;
-      const amount = parseFloat(prompt('Estimated total order value (KES):')) || 0;
-      
-      await db.purchase_orders.add({
-        id: crypto.randomUUID(),
-        tenant_id: state.currentTenant.id,
-        supplier_id: suppliersList[0].id,
-        order_no: orderNo,
-        total_amount: amount,
-        status: 'PENDING',
-        created_by: state.currentUser.id
-      });
+          // 1. Get current physical stock balance inside store location
+          const currentStock = await getStoreStock(line.product_id, state.currentBranch.id);
 
-      showNotification('Purchase Order created in PENDING state.', 'success');
-      this.loadSubTab();
-    });
+          // 2. Compute Weighted Average Cost (WAC)
+          let newCost = line.cost_price;
+          if (product.cost_price && currentStock > 0) {
+            newCost = ((currentStock * product.cost_price) + (line.qty * line.cost_price)) / (currentStock + line.qty);
+          }
 
-    pane.querySelectorAll('.approve-po-btn').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        const poId = e.target.getAttribute('data-id');
-        const po = await db.purchase_orders.get(poId);
+          // 3. Update product registry average cost price
+          await db.products.update(line.product_id, {
+            cost_price: parseFloat(newCost.toFixed(2))
+          });
 
-        // SECURE SELF-APPROVAL CHECK
-        if (po.created_by === state.currentUser.id) {
-          showNotification('Dual Control check failed. Requester cannot approve this PO.', 'error');
-          return;
+          // 4. Register double-entry STOCK_IN movement into the Store location
+          await db.stock_movements.add({
+            id: `mov-${crypto.randomUUID().slice(0, 8)}`,
+            tenant_id: state.currentTenant.id,
+            branch_id: state.currentBranch.id,
+            product_id: line.product_id,
+            batch_id: 'default',
+            type: 'STOCK_IN',
+            qty: line.qty,
+            ref_id: poId,
+            location: 'store',
+            created_at: new Date().toISOString()
+          });
         }
-
-        await db.purchase_orders.update(poId, {
-          status: 'APPROVED',
-          approved_by: state.currentUser.id
-        });
-
-        await logAuditEvent(state.currentTenant.id, state.currentUser.id, 'APPROVE_PO', 'PURCHASE_ORDER', poId);
-        showNotification('Purchase Order approved.', 'success');
-        this.loadSubTab();
-      });
-    });
-  }
-
-  async renderGrns(pane) {
-    const list = await db.grns.toArray();
-    const poList = await db.purchase_orders.toArray();
-    const poMap = new Map(poList.map(po => [po.id, po]));
-
-    pane.innerHTML = `
-      <div class="control-bar">
-        <button class="primary-btn" id="receive-goods-btn">Receive Goods (GRN)</button>
-      </div>
-
-      <div class="table-wrapper">
-        <table class="pos-table">
-          <thead>
-            <tr>
-              <th>GRN Date</th>
-              <th>Linked PO</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody id="grns-tbody">
-            ${list.length === 0 ? '<tr><td colspan="3" style="text-align:center;">No goods received notes found.</td></tr>' : ''}
-            ${list.map(g => {
-              const po = poMap.get(g.po_id);
-              return `
-                <tr>
-                  <td>${new Date(g.received_date).toLocaleDateString()}</td>
-                  <td style="font-family:monospace;">${po ? po.order_no : 'Unknown PO'}</td>
-                  <td><span class="badge success">${g.status}</span></td>
-                </tr>
-              `;
-            }).join('')}
-          </tbody>
-        </table>
-      </div>
-    `;
-
-    document.getElementById('receive-goods-btn').addEventListener('click', async () => {
-      const poNum = prompt('Enter Approved PO Number (e.g. PO-2026-XXXX):');
-      const po = await db.purchase_orders.where('order_no').equals(poNum).first();
-      
-      if (!po || po.status !== 'APPROVED') {
-        showNotification('Approved PO not found.', 'error');
-        return;
-      }
-
-      const products = await db.products.where('is_service').equals(0).toArray();
-      if (products.length === 0) return;
-
-      const grnId = crypto.randomUUID();
-      const product = products[0]; // Auto pick first item for demo atomic post
-      const qty = parseInt(prompt(`Enter quantity received for ${product.name}:`)) || 0;
-      
-      if (qty <= 0) return;
-
-      // ATOMIC TRANSACTION: Writing GRN + Posting stock movements atomically
-      await db.transaction('rw', [db.grns, db.grn_lines, db.stock_movements], async () => {
-        await db.grns.add({
-          id: grnId,
-          po_id: po.id,
-          branch_id: state.currentBranch.id,
-          received_date: new Date().toISOString(),
-          status: 'POSTED',
-          created_by: state.currentUser.id
-        });
-
-        await db.grn_lines.add({
-          id: crypto.randomUUID(),
-          grn_id: grnId,
-          product_id: product.id,
-          qty_received: qty,
-          batch_id: null
-        });
-
-        // Atomic post stock movements ledger!
-        await db.stock_movements.add({
-          id: crypto.randomUUID(),
-          tenant_id: state.currentTenant.id,
-          branch_id: state.currentBranch.id,
-          product_id: product.id,
-          batch_id: null,
-          type: 'PURCHASE_RECEIPT',
-          qty: qty,
-          unit_cost: product.cost_price,
-          ref_type: 'GRN',
-          ref_id: grnId,
-          reason: 'Landed supplier delivery',
-          created_by: state.currentUser.id,
-          created_at: new Date().toISOString()
-        });
-
-        await logAuditEvent(state.currentTenant.id, state.currentUser.id, 'GRN_RECEIVE_ATOMIC', 'GRN', grnId);
       });
 
-      // Triggers background sync for stock adjustments to eTIMS
-      state.syncManager.syncOutbox();
+      await logAuditEvent(state.currentTenant.id, state.currentUser?.id || 'procurement', 'RECEIVE_GRN', 'PURCHASE_ORDER', poId);
+      showNotification('GRN processed. Store stock increased & Weighted Average Costs updated.', 'success');
+      await this.loadActivePOs();
 
-      showNotification('GRN posted. Stock updated atomically.', 'success');
-      this.loadSubTab();
-    });
+    } catch (err) {
+      console.error(err);
+      showNotification('Failed to receive goods: ' + err.message, 'error');
+    }
   }
 }

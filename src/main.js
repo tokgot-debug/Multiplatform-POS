@@ -27,6 +27,9 @@ import { FinanceView } from './ui/finance';
 import { QrToolsView } from './ui/qr_export';
 import { AuditLogsView } from './ui/audit-logs';
 import { SubscriptionsView } from './ui/subscriptions';
+import { KDSView } from './ui/kds';
+import { ProcurementView } from './ui/procurement';
+import { CustomersView } from './ui/customers';
 import { state, showNotification } from './context';
 
 // Global polyfill for crypto.randomUUID in non-secure contexts (e.g. previewing over HTTP local network)
@@ -117,6 +120,9 @@ async function initApp() {
   state.views.users = new UsersView(document.getElementById('view-users'));
   state.views['audit-logs'] = new AuditLogsView(document.getElementById('view-view-audit-logs') || document.getElementById('view-audit-logs'));
   state.views.subscriptions = new SubscriptionsView(document.getElementById('view-subscriptions'));
+  state.views.kds = new KDSView(document.getElementById('view-kds'));
+  state.views.procurement = new ProcurementView(document.getElementById('view-procurement'));
+  state.views.customers = new CustomersView(document.getElementById('view-customers'));
   state.views.settings = new SettingsView(document.getElementById('view-settings'));
   state.views.finance = new FinanceView(document.getElementById('view-finance'));
   state.views.qrtools = new QrToolsView(document.getElementById('view-qrtools'));
@@ -279,7 +285,10 @@ document.getElementById('numpad-ok').addEventListener('click', async () => {
       'finance': ['Owner', 'Store Manager'],
       'qrtools': ['Owner', 'Store Manager', 'Supervisor'],
       'audit-logs': ['Owner', 'Store Manager'],
-      'subscriptions': ['Owner', 'Store Manager']
+      'subscriptions': ['Owner', 'Store Manager'],
+      'kds': ['Owner', 'Store Manager', 'Supervisor', 'Bar Staff', 'Store Keeper'],
+      'procurement': ['Owner', 'Store Manager'],
+      'customers': ['Owner', 'Store Manager', 'Supervisor']
     };
     
     document.querySelectorAll('.sidebar-nav-btn').forEach(btn => {
@@ -338,7 +347,10 @@ async function switchTab(tabName) {
     'finance': ['Owner', 'Store Manager'],
     'qrtools': ['Owner', 'Store Manager', 'Supervisor'],
     'audit-logs': ['Owner', 'Store Manager'],
-    'subscriptions': ['Owner', 'Store Manager']
+    'subscriptions': ['Owner', 'Store Manager'],
+    'kds': ['Owner', 'Store Manager', 'Supervisor', 'Bar Staff', 'Store Keeper'],
+    'procurement': ['Owner', 'Store Manager'],
+    'customers': ['Owner', 'Store Manager', 'Supervisor']
   };
   
   // If the tab is restricted and the user's role is not in the allowed list, block access

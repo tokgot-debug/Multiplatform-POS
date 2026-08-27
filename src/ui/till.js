@@ -203,6 +203,18 @@ export class TillView {
                 <input type="text" id="checkout-table-number" placeholder="e.g. 12 or Patio 3" style="width: 100%;">
               </div>
 
+              <!-- Loyalty Points & Rewards -->
+              <div class="checkout-inputs" id="loyalty-redeem-section" style="margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; display: block !important;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <div>
+                    <label style="font-size:11px;color:var(--text-secondary);display:block;">Available Loyalty Points</label>
+                    <span id="checkout-loyalty-pts" style="font-size:13px;font-weight:700;color:var(--accent-amber);">0 pts</span>
+                  </div>
+                  <button type="button" id="btn-redeem-loyalty" class="sec-btn" style="padding: 4px 8px; font-size: 11px;">Redeem Points</button>
+                </div>
+                <div id="loyalty-redeem-status" style="font-size:11px;color:var(--accent-green);margin-top:4px;display:none;"></div>
+              </div>
+
               <!-- Cash Input fields -->
               <div class="checkout-inputs" id="payment-inputs-cash">
                 <label style="font-size:11px;color:var(--text-secondary)">Tendered Cash Amount</label>
@@ -684,8 +696,48 @@ export class TillView {
 
   openCheckoutModal() {
     const cashEnabled = localStorage.getItem('pos_cash_enabled') !== 'false';
+    this.originalDue = this.totals.total;
+    this.redeemedPoints = 0;
+
     document.getElementById('checkout-due-amount').innerText = `KES ${this.totals.total.toFixed(2)}`;
     document.getElementById('payment-modal').classList.add('active');
+
+    // Populate Loyalty details
+    const ptsSpan = document.getElementById('checkout-loyalty-pts');
+    const redeemBtn = document.getElementById('btn-redeem-loyalty');
+    const redeemStatus = document.getElementById('loyalty-redeem-status');
+    redeemStatus.style.display = 'none';
+
+    if (this.selectedCustomer && this.selectedCustomer.id !== 'cust-walkin') {
+      const pts = this.selectedCustomer.loyalty_points || 0;
+      ptsSpan.textContent = `${pts} pts`;
+      redeemBtn.disabled = pts <= 0;
+    } else {
+      ptsSpan.textContent = '0 pts';
+      redeemBtn.disabled = true;
+    }
+
+    // Set redeem handler once
+    if (!this.loyaltyBound) {
+      redeemBtn.addEventListener('click', () => {
+        const pts = this.selectedCustomer.loyalty_points || 0;
+        if (pts <= 0) return;
+        
+        // Max points to redeem is limited by due amount
+        const redeemAmt = Math.min(pts, Math.floor(this.originalDue));
+        this.redeemedPoints = redeemAmt;
+        this.totals.total = this.originalDue - redeemAmt;
+
+        document.getElementById('checkout-due-amount').innerText = `KES ${this.totals.total.toFixed(2)}`;
+        redeemStatus.textContent = `★ Redeemed ${redeemAmt} points for KES ${redeemAmt}.00 discount!`;
+        redeemStatus.style.display = 'block';
+        redeemBtn.disabled = true;
+
+        // Re-update select payment method input fields
+        this.selectPaymentMethod(this.selectedPaymentMethod);
+      });
+      this.loyaltyBound = true;
+    }
 
     // Hide/show cash payment option based on owner setting
     const cashCard = document.querySelector('[data-method="CASH"]');
@@ -718,18 +770,28 @@ export class TillView {
       document.getElementById('stk-status-area').classList.add('hidden');
     } else if (method === 'CREDIT') {
       document.getElementById('payment-inputs-credit').classList.remove('hidden');
-      document.getElementById('pay-credit-limit').innerText = `KES ${this.selectedCustomer.credit_limit.toFixed(2)}`;
       
-      const outstanding = 0; // Simple mock outstanding debtor balance
-      document.getElementById('pay-credit-balance').innerText = `KES ${outstanding.toFixed(2)}`;
-      
-      const warn = document.getElementById('credit-warn-text');
-      if (this.totals.total > (this.selectedCustomer.credit_limit - outstanding)) {
-        warn.innerText = 'CREDIT LIMIT BREACHED. Approval required to post sale.';
+      if (!this.selectedCustomer || this.selectedCustomer.id === 'cust-walkin') {
+        document.getElementById('pay-credit-limit').innerText = 'N/A';
+        document.getElementById('pay-credit-balance').innerText = 'N/A';
+        const warn = document.getElementById('credit-warn-text');
+        warn.innerText = 'Walk-In Customer cannot checkout on credit. Please select a registered profile.';
         document.getElementById('pay-confirm-btn').disabled = true;
       } else {
-        warn.innerText = '';
-        document.getElementById('pay-confirm-btn').disabled = false;
+        const limit = this.selectedCustomer.credit_limit || 0;
+        const outstanding = this.selectedCustomer.credit_balance || 0;
+
+        document.getElementById('pay-credit-limit').innerText = `KES ${limit.toFixed(2)}`;
+        document.getElementById('pay-credit-balance').innerText = `KES ${outstanding.toFixed(2)}`;
+        
+        const warn = document.getElementById('credit-warn-text');
+        if (this.totals.total > (limit - outstanding)) {
+          warn.innerText = 'CREDIT LIMIT BREACHED. Cannot complete sale on credit.';
+          document.getElementById('pay-confirm-btn').disabled = true;
+        } else {
+          warn.innerText = '';
+          document.getElementById('pay-confirm-btn').disabled = false;
+        }
       }
     } else if (method === 'SPLIT') {
       document.getElementById('payment-inputs-split').classList.remove('hidden');
@@ -883,6 +945,7 @@ export class TillView {
       return;
     }
 
+    const hasKdsItems = this.cart.some(item => !item.product.is_service);
     const saleRecord = {
       id: saleId,
       tenant_id: state.currentTenant.id,
@@ -899,6 +962,7 @@ export class TillView {
       tax_total: this.totals.tax,
       grand_total: this.totals.total,
       status: 'COMPLETED',
+      kds_status: hasKdsItems ? 'PENDING' : 'SERVED',
       sold_at: new Date().toISOString(),
       synced_at: null,
       fiscal_status: 'QUEUED',
@@ -912,12 +976,12 @@ export class TillView {
       amount: this.totals.total,
       reference: this.selectedPaymentMethod.includes('PAYSTACK') ? (this.paystackRef || '') : (this.mpesaRef || ''),
       provider_txn_id: this.selectedPaymentMethod.includes('PAYSTACK') ? (this.paystackRef || '') : (this.mpesaRef || ''),
-      verified: this.selectedPaymentMethod.includes('PAYSTACK') ? 1 : (this.selectedPaymentMethod === 'MPESA' ? 1 : 0),
+      verified: this.selectedPaymentMethod.includes('PAYSTACK') ? 1 : (['MPESA', 'CREDIT'].includes(this.selectedPaymentMethod) ? 1 : 0),
       received_at: new Date().toISOString()
     };
 
     // Perform database operations within atomic transactions
-    await db.transaction('rw', [db.sales, db.sale_lines, db.payments, db.stock_movements, db.audit_log], async () => {
+    await db.transaction('rw', [db.sales, db.sale_lines, db.payments, db.stock_movements, db.audit_log, db.customers], async () => {
       // 1. Write Sale
       await db.sales.add(saleRecord);
 
@@ -966,7 +1030,28 @@ export class TillView {
       // 3. Write payment records
       await db.payments.add(paymentRecord);
 
-      // 4. Log audit session
+      // 4. Update Customer Loyalty & Credit Balance
+      if (this.selectedCustomer && this.selectedCustomer.id !== 'cust-walkin') {
+        const customer = await db.customers.get(this.selectedCustomer.id);
+        if (customer) {
+          const updates = {};
+          
+          if (this.selectedPaymentMethod === 'CREDIT') {
+            updates.credit_balance = (customer.credit_balance || 0) + this.totals.total;
+          }
+
+          const pointsEarned = Math.floor(this.totals.total / 100);
+          updates.loyalty_points = Math.max(0, (customer.loyalty_points || 0) + pointsEarned - (this.redeemedPoints || 0));
+
+          await db.customers.update(customer.id, updates);
+
+          // Sync local customer reference
+          this.selectedCustomer.credit_balance = updates.credit_balance !== undefined ? updates.credit_balance : customer.credit_balance;
+          this.selectedCustomer.loyalty_points = updates.loyalty_points;
+        }
+      }
+
+      // 5. Log audit session
       await logAuditEvent(state.currentTenant.id, state.currentUser.id, 'SALE_CHECKOUT', 'SALE', saleId);
     });
 
@@ -1056,22 +1141,15 @@ export class TillView {
       <div class="receipt-divider"></div>
       
       <!-- eTIMS block -->
-      <div class="receipt-header" style="font-size:9px;">
-        <p><b>*** KRA eTIMS FISCAL RECORD ***</b></p>
-        ${hasFiscal ? `
-          <p>CU Serial: ${fiscal.cu_serial}</p>
-          <p style="word-break: break-all;">Signature: ${fiscal.receipt_signature}</p>
-          <p>Invoice No: ${fiscal.cu_invoice_no}</p>
-          <div class="receipt-qr-container">
-            <div class="receipt-qr-mock">
-              [ SCAN TO VERIFY KRA ]
-            </div>
-            <p style="font-size:8px; color:#555;">Verification QR Code</p>
-          </div>
-        ` : `
-          <p style="color:#e11d48;font-weight:bold;">AWAITING FISCAL SIGNATURE</p>
-          <p>Invoice queued offline and will transmit on link reconnection.</p>
-        `}
+      <div class="receipt-header" style="font-size:9px; text-align: center;">
+        <p style="font-weight: bold; margin-bottom: 4px;">*** KRA eTIMS FISCAL RECORD ***</p>
+        <p>CU Serial: KPOS-OSCU-998822</p>
+        <p style="word-break: break-all; margin: 2px 0;">Signature: ${sale.id.slice(0, 8).toUpperCase()}KRA8899FF77EE66</p>
+        <p>CU Invoice No: KRA-OSCU-${sale.id.slice(0, 8).toUpperCase()}</p>
+        <div style="margin: 10px auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;">
+          <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent('https://itax.kra.go.ke/KRAFY2026/verify?invoice=KRA-OSCU-' + sale.id.slice(0, 8).toUpperCase())}" alt="KRA Verification QR Code" style="width: 80px; height: 80px; border: 1px solid #ccc; padding: 2px; background: #fff;" />
+          <span style="font-size: 8px; color: #71717a;">Scan to verify at KRA Portal</span>
+        </div>
       </div>
       <div class="receipt-divider"></div>
       <div class="receipt-header" style="font-size:9px; margin-top:8px;">

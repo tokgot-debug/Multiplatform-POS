@@ -173,11 +173,8 @@ export class ShiftsView {
       .equals(this.activeShift.id)
       .toArray();
 
-    // 2. Fetch cash movements
-    const movements = await db.stock_movements // Simulating drawer cash entries via system logs or sum of payments
+    // 2. Fetch cash payments
     const paymentsList = await db.payments.toArray();
-    
-    // Filter payments belonging to sales of this shift
     const saleIds = new Set(sales.map(s => s.id));
     const shiftPayments = paymentsList.filter(p => saleIds.has(p.sale_id));
     
@@ -192,7 +189,30 @@ export class ShiftsView {
       }
     });
 
-    const expectedCash = this.activeShift.opening_float + cashSalesTotal;
+    // 3. Fetch Petty Cash Expenses (PAYOUTS)
+    const expensesList = await db.expenses
+      .where('shift_id')
+      .equals(this.activeShift.id)
+      .toArray();
+    const totalPayouts = expensesList.reduce((acc, exp) => acc + exp.amount, 0);
+
+    // 4. Fetch Cash Pay-ins from audit logs
+    const auditLogs = await db.audit_log
+      .where('entity_id')
+      .equals(this.activeShift.id)
+      .toArray();
+    
+    let totalPayins = 0;
+    auditLogs.forEach(log => {
+      if (log.action === 'CASH_PAYIN') {
+        try {
+          const data = JSON.parse(log.details);
+          totalPayins += data.amount || 0;
+        } catch (e) {}
+      }
+    });
+
+    const expectedCash = this.activeShift.opening_float + cashSalesTotal + totalPayins - totalPayouts;
     
     document.getElementById('shift-expected-cash').innerText = `KES ${expectedCash.toFixed(2)}`;
     
@@ -207,8 +227,29 @@ export class ShiftsView {
     if (isNaN(amt) || amt <= 0) return;
     const reason = prompt('Enter justification / reason code:');
 
+    if (type === 'PAYOUT') {
+      await db.expenses.add({
+        id: `exp-${crypto.randomUUID().slice(0, 8)}`,
+        tenant_id: state.currentTenant.id,
+        branch_id: state.currentBranch.id,
+        shift_id: this.activeShift.id,
+        category: reason || 'Miscellaneous Expense',
+        amount: amt,
+        created_at: new Date().toISOString()
+      });
+    }
+
     // Logs movement details
-    await logAuditEvent(state.currentTenant.id, state.currentUser.id, `CASH_${type}`, 'SHIFT', this.activeShift.id, null, JSON.stringify({ amount: amt, reason }));
+    await logAuditEvent(
+      state.currentTenant.id,
+      state.currentUser.id,
+      `CASH_${type}`,
+      'SHIFT',
+      this.activeShift.id,
+      null,
+      JSON.stringify({ amount: amt, reason })
+    );
+
     showNotification(`Cash drawer ${type} logged.`, 'success');
     this.calculateExpectedDrawer();
   }
