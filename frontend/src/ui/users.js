@@ -1,5 +1,7 @@
 import { db } from '../db/schema';
 import { state, showNotification } from '../context';
+import { callFunction } from '../services/firebase';
+import { ROLE_CODES } from '../services/roles';
 
 export class UsersView {
   constructor(container) {
@@ -63,8 +65,9 @@ export class UsersView {
             </div>
 
             <div style="margin-bottom: 16px;">
-              <label style="display: block; font-size: 11px; color: var(--text-secondary); margin-bottom: 6px;">Email Address</label>
-              <input type="email" id="user-email" style="width: 100%; padding: 10px; border-radius: 6px; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: #fff; font-family: var(--font-main); font-size: 13px;">
+              <label style="display: block; font-size: 11px; color: var(--text-secondary); margin-bottom: 6px;">Email Address (this is their login)</label>
+              <input type="email" id="user-email" required style="width: 100%; padding: 10px; border-radius: 6px; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: #fff; font-family: var(--font-main); font-size: 13px;">
+              <p style="margin: 6px 0 0 0; font-size: 11px; color: var(--text-muted);">No work inbox? Issue one, e.g. wanjiku@savahope.pos — it only has to be unique.</p>
             </div>
 
             <div style="margin-bottom: 16px;">
@@ -80,8 +83,9 @@ export class UsersView {
             </div>
 
             <div style="margin-bottom: 24px;">
-              <label style="display: block; font-size: 11px; color: var(--text-secondary); margin-bottom: 6px;">Login PIN (4 digits)</label>
-              <input type="password" id="user-pin" required pattern="[0-9]{4}" maxlength="4" style="width: 100%; padding: 10px; border-radius: 6px; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: #fff; font-family: var(--font-main); font-size: 13px; letter-spacing: 4px;">
+              <label style="display: block; font-size: 11px; color: var(--text-secondary); margin-bottom: 6px;">Password (at least 8 characters)</label>
+              <input type="password" id="user-password" required minlength="8" autocomplete="new-password" style="width: 100%; padding: 10px; border-radius: 6px; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: #fff; font-family: var(--font-main); font-size: 13px;">
+              <p style="margin: 6px 0 0 0; font-size: 11px; color: var(--text-muted);">Hand this to them directly. On an existing user, this sets a new password.</p>
             </div>
 
             <div style="display: flex; gap: 12px; justify-content: flex-end;">
@@ -163,32 +167,28 @@ export class UsersView {
       const name = document.getElementById('user-name').value;
       const email = document.getElementById('user-email').value;
       const role = document.getElementById('user-role').value;
-      const pin = document.getElementById('user-pin').value;
+      const password = document.getElementById('user-password').value;
 
+      // Accounts are created by the backend, which owns the Firebase identity
+      // and the claims. The till never writes a credential anywhere.
       try {
         if (id) {
-          // Edit existing
-          await db.users.update(id, { name, email, role, pin });
-          showNotification('User updated successfully', 'success');
+          await callFunction('resetStaffPassword', { staffId: id, password });
+          showNotification('Password updated. Give it to them directly.', 'success');
         } else {
-          // Add new
-          const newId = crypto.randomUUID();
-          await db.users.add({
-            id: newId,
-            tenant_id: state.currentTenant ? state.currentTenant.id : 'tenant-1',
+          await callFunction('createStaffUser', {
             name,
             email,
-            role,
-            pin,
-            status: 'ACTIVE'
+            password,
+            role: ROLE_CODES[role] || 'cashier'
           });
-          showNotification('User added successfully', 'success');
+          showNotification(`${name} can now sign in with ${email}`, 'success');
         }
-        
+
         modal.classList.add('hidden');
         await this.populateUsers();
       } catch (err) {
-        showNotification('Error saving user: ' + err.message, 'error');
+        showNotification(err.message || 'Could not save that user.', 'error');
       }
     });
 
@@ -205,18 +205,23 @@ export class UsersView {
           document.getElementById('user-id').value = user.id;
           document.getElementById('user-name').value = user.name;
           document.getElementById('user-email').value = user.email || '';
+          document.getElementById('user-email').readOnly = true;
           document.getElementById('user-role').value = user.role || 'Cashier';
-          document.getElementById('user-pin').value = user.pin;
+          document.getElementById('user-password').value = '';
           modal.classList.remove('hidden');
         }
       }
-      
+
       if (deleteBtn) {
         const id = deleteBtn.getAttribute('data-id');
-        if (confirm('Are you sure you want to deactivate this user?')) {
-          await db.users.update(id, { status: 'INACTIVE' });
-          showNotification('User deactivated', 'success');
-          await this.populateUsers();
+        if (confirm('Disable this user? They will be signed out and cannot sign back in.')) {
+          try {
+            await callFunction('setStaffActive', { staffId: id, active: false });
+            showNotification('User disabled', 'success');
+            await this.populateUsers();
+          } catch (err) {
+            showNotification(err.message || 'Could not disable that user.', 'error');
+          }
         }
       }
     });

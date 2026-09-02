@@ -24,8 +24,10 @@ test('mapPaymentMethod normalises local tender codes', () => {
   assert.equal(mapPaymentMethod('CASH'), 'cash');
   assert.equal(mapPaymentMethod('cash'), 'cash');
   assert.equal(mapPaymentMethod('MPESA'), 'mpesa');
-  assert.equal(mapPaymentMethod('PAYSTACK_CARD'), 'card');
+  assert.equal(mapPaymentMethod('CREDIT'), 'credit');
   assert.equal(mapPaymentMethod('BANK'), 'bank_transfer');
+  // A split is written as its two real tenders, so SPLIT must never map.
+  assert.equal(mapPaymentMethod('SPLIT'), null);
 });
 
 test('mapPaymentMethod returns null for anything unrecognised', () => {

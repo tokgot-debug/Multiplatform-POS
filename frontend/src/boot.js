@@ -93,32 +93,61 @@ async function runBoot(onSyncStatus) {
   return { tenant: state.currentTenant, branch: state.currentBranch };
 }
 
-export async function listActiveUsers() {
-  return db.users.where('status').equals('ACTIVE').toArray();
+/**
+ * Signs a staff member in against Firebase Authentication.
+ *
+ * Identity is entirely server-side now: the till holds no credential, compares
+ * nothing locally, and learns the person's role only from the signed token.
+ */
+export async function signInStaff(email, password) {
+  const { firebaseConfigured, signIn } = await import('./services/firebase.js');
+  if (!firebaseConfigured) {
+    throw new Error('This till has no backend configured, so nobody can sign in.');
+  }
+  return signIn(email, password);
 }
 
-/** Verifies the local unlock PIN. Returns the user, or null. */
-export async function verifyLocalPin(userId, pin) {
-  const user = await db.users.get(userId);
-  return user && user.pin === pin ? user : null;
+/** Returns the already signed-in staff member on reload, or null. */
+export async function resumeStaffSession() {
+  try {
+    const { firebaseConfigured, restoreSession } = await import('./services/firebase.js');
+    if (!firebaseConfigured) return null;
+    return await restoreSession();
+  } catch {
+    return null;
+  }
 }
 
 /**
- * Signs the till into Firebase and opens a shift so the outbox has somewhere to
- * drain. Fire-and-forget: every failure ends with the operator still selling.
+ * Opens the shift so the outbox has somewhere to drain. Advisory: every failure
+ * still ends with the operator able to sell.
  */
-export async function establishCloudSession(user, pin) {
-  const { firebaseConfigured, startTillSession, openShift } = await import('./services/firebase.js');
+export async function establishCloudSession() {
+  const { firebaseConfigured, openShift } = await import('./services/firebase.js');
   if (!firebaseConfigured) return;
 
   try {
-    await startTillSession(user.id, pin);
     const branchId = state.currentBranch ? state.currentBranch.id : null;
     if (branchId) await openShift(branchId);
     if (state.syncManager) state.syncManager.syncOutbox();
   } catch (err) {
     console.warn('Backend session unavailable; till stays local-only.', err);
     showNotification('Working offline: sales will queue until the backend is reachable.', 'warning');
+  }
+
+  // Products live on the server; Dexie is only a read cache of them. Without
+  // this a till shows whatever the bundled seed file had and never sees a
+  // product anyone else created.
+  //
+  // Kept out of the block above deliberately: a catalogue that will not refresh
+  // is not the same as a backend that cannot be reached, and reporting it as
+  // one sends the cashier looking for a network problem that is not there.
+  try {
+    const { pullCatalogue } = await import('./services/catalogue.js');
+    const count = await pullCatalogue();
+    if (count) console.info(`Catalogue synced: ${count} products.`);
+  } catch (err) {
+    console.warn('Catalogue not refreshed; showing the last known menu.', err);
   }
 }
 

@@ -8,24 +8,66 @@
  * Labels and icons are exactly those from the original index.html.
  */
 
-export const NAV_ITEMS = [
-  { tab: 'till', icon: '🏪', label: 'Dashboard' },
-  { tab: 'orders', icon: '🧾', label: 'Orders Viewer' },
-  { tab: 'shifts', icon: '💵', label: 'Shift Management' },
-  { tab: 'inventory', icon: '🍽️', label: 'Menu Admin' },
-  { tab: 'mpesa', icon: '📱', label: 'Mpesa' },
-  { tab: 'store-stock', icon: '📦', label: 'Store Stock' },
-  { tab: 'house-stock', icon: '📊', label: 'House Stock' },
-  { tab: 'users', icon: '👥', label: 'Users' },
-  { tab: 'audit-logs', icon: '📜', label: 'Audit Logs' },
-  { tab: 'finance', icon: '📈', label: 'Financials & AI' },
-  { tab: 'qrtools', icon: '🔧', label: 'QR & Tools' },
-  { tab: 'settings', icon: '⚙️', label: 'Settings' }
+/**
+ * Sidebar groups, in the order they appear.
+ *
+ * Grouped by what someone is trying to do rather than by which screen came
+ * first: a cashier lives entirely in Service, a store keeper in Stock, and an
+ * owner drops into Money and Administration at the end of a shift.
+ *
+ * Users is not here - staff management now lives inside Settings, so there is
+ * one place that answers "who can do what".
+ */
+export const NAV_GROUPS = [
+  {
+    id: 'service',
+    label: 'Service',
+    items: [
+      { tab: 'till', icon: '🏪', label: 'Dashboard' },
+      { tab: 'orders', icon: '🧾', label: 'Orders Viewer' },
+      { tab: 'shifts', icon: '💵', label: 'Shift Management' }
+    ]
+  },
+  {
+    id: 'stock',
+    label: 'Stock',
+    items: [
+      { tab: 'inventory', icon: '🍽️', label: 'Menu Admin' },
+      { tab: 'store-stock', icon: '📦', label: 'Store Stock' },
+      { tab: 'house-stock', icon: '📊', label: 'House Stock' }
+    ]
+  },
+  {
+    id: 'money',
+    label: 'Money',
+    items: [
+      { tab: 'mpesa', icon: '📱', label: 'Mpesa' },
+      { tab: 'finance', icon: '📈', label: 'Financials & AI' }
+    ]
+  },
+  {
+    id: 'admin',
+    label: 'Administration',
+    items: [
+      { tab: 'audit-logs', icon: '📜', label: 'Audit Logs' },
+      { tab: 'qrtools', icon: '🔧', label: 'QR & Tools' },
+      { tab: 'settings', icon: '⚙️', label: 'Settings' }
+    ]
+  }
 ];
+
+/** Flat list, still the single source of truth for what a route is called. */
+export const NAV_ITEMS = NAV_GROUPS.flatMap((group) => group.items);
+
+/** The group holding a tab, so the sidebar can open it on a deep link. */
+export function groupForTab(tab) {
+  const group = NAV_GROUPS.find((entry) => entry.items.some((item) => item.tab === tab));
+  return group ? group.id : NAV_GROUPS[0].id;
+}
 
 /** Modules absent from this map are reachable by every signed-in role. */
 export const RESTRICTED_TABS = {
-  'users': ['Owner', 'Store Manager'],
+  // Settings now carries staff management, so it keeps the old users rule.
   'settings': ['Owner', 'Store Manager'],
   'inventory': ['Owner', 'Store Manager', 'Supervisor', 'Store Keeper'],
   'store-stock': ['Owner', 'Store Manager', 'Supervisor', 'Store Keeper'],

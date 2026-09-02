@@ -1,4 +1,5 @@
 import { db } from '../db/schema';
+import { UsersView } from './users';
 import { verifyAuditTrail } from '../db/index';
 import { state, showNotification } from '../context';
 
@@ -27,6 +28,7 @@ export class SettingsView {
           <button class="pane-nav-btn ${this.activeTab === 'payments' ? 'active' : ''}" data-stab="payments">💳 Payments</button>
           <button class="pane-nav-btn ${this.activeTab === 'discounts' ? 'active' : ''}" data-stab="discounts">🏷️ Discounts</button>
           <button class="pane-nav-btn ${this.activeTab === 'system' ? 'active' : ''}" data-stab="system">🔧 System</button>
+          <button class="pane-nav-btn ${this.activeTab === 'staff' ? 'active' : ''}" data-stab="staff">👥 Staff &amp; Access</button>
           <button class="pane-nav-btn ${this.activeTab === 'audit' ? 'active' : ''}" data-stab="audit">🔒 Audit</button>
         </div>
 
@@ -123,21 +125,6 @@ export class SettingsView {
                 </div>
               </div>
 
-              <!-- Card & Bank Transfer Control -->
-              <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border-color);border-radius:10px;padding:18px;margin-bottom:20px;">
-                <div style="display:flex;justify-content:space-between;align-items:center;">
-                  <div>
-                    <div style="font-weight:800;font-size:15px;color:#fff;display:flex;align-items:center;gap:10px;">
-                      💳 Visa / Mastercard / Bank Transfer
-                      <span style="font-size:10px;padding:2px 8px;border-radius:12px;font-weight:800;background:rgba(16,185,129,.15);color:var(--accent-green);">ENABLED</span>
-                    </div>
-                    <p style="font-size:12px;color:var(--text-secondary);margin-top:6px;max-width:520px;line-height:1.5;">
-                      Accept debit cards, credit cards, and bank transfers via Paystack checkout popup.
-                    </p>
-                  </div>
-                  <span style="font-size:11px;color:#10b981;font-weight:700;">Always Active</span>
-                </div>
-              </div>
             </div>
           </div>
 
@@ -251,6 +238,8 @@ export class SettingsView {
           </div>
 
           <!-- AUDIT TAB -->
+          <div id="stab-staff" style="display:${this.activeTab === 'staff' ? 'block' : 'none'}"></div>
+
           <div id="stab-audit" style="display:${this.activeTab === 'audit' ? 'block' : 'none'}">
             <div class="discount-section">
               <h3>🔒 Audit Ledger Verification</h3>
@@ -265,7 +254,24 @@ export class SettingsView {
     `;
   }
 
+  /**
+   * Staff management, moved out of its own sidebar entry.
+   *
+   * UsersView owns its markup and events, so it is mounted into the pane rather
+   * than reimplemented here - there is one place that creates staff, and it is
+   * the one already wired to createStaffUser.
+   */
+  mountStaffPane() {
+    if (this.activeTab !== 'staff') return;
+    const pane = document.getElementById('stab-staff');
+    if (!pane) return;
+
+    this.usersView = new UsersView(pane);
+    this.usersView.load();
+  }
+
   bindEvents() {
+    this.mountStaffPane();
 
     // Sub-tab switching
     this.container.querySelectorAll('[data-stab]').forEach(btn => {

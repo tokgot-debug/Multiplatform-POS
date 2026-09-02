@@ -15,8 +15,15 @@ import {
   endCloudSession,
   establishCloudSession,
   reportStockAlerts,
+  resumeStaffSession,
 } from "@/boot";
 import { state } from "@/context";
+
+/**
+ * Idle sign-out. With the PIN pad gone there is no cheap re-lock, so an
+ * unattended till would otherwise stay open on a full session all shift.
+ */
+const IDLE_LIMIT_MS = 15 * 60 * 1_000;
 
 type PosUser = {
   id: string;
@@ -31,7 +38,7 @@ type PosSessionValue = {
   user: PosUser | null;
   queueCount: number;
   online: boolean;
-  signIn: (user: PosUser, pin: string) => Promise<void>;
+  signIn: (user: PosUser) => Promise<void>;
   signOut: () => void;
   setOnline: (value: boolean) => void;
 };
@@ -67,12 +74,12 @@ export function PosSessionProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const signIn = useCallback(async (nextUser: PosUser, pin: string) => {
+  const signIn = useCallback(async (nextUser: PosUser) => {
     state.currentUser = nextUser;
     setUser(nextUser);
-    // Backend session and the stock sweep are both advisory; neither may block
-    // the operator from reaching the till.
-    void establishCloudSession(nextUser, pin);
+    // Opening the shift and the stock sweep are both advisory; neither may
+    // block the operator from reaching the till.
+    void establishCloudSession();
     setTimeout(() => void reportStockAlerts(), 3000);
   }, []);
 
@@ -81,6 +88,36 @@ export function PosSessionProvider({ children }: { children: ReactNode }) {
     setUser(null);
     void endCloudSession();
   }, []);
+
+  // Firebase keeps the session across reloads, so a refresh must not drop the
+  // cashier back to a sign-in screen mid-shift.
+  useEffect(() => {
+    if (!ready || user) return;
+    let cancelled = false;
+    resumeStaffSession().then((existing: PosUser | null) => {
+      if (!cancelled && existing) void signIn(existing);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [ready, user, signIn]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    let timer = window.setTimeout(signOut, IDLE_LIMIT_MS);
+    const reset = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(signOut, IDLE_LIMIT_MS);
+    };
+
+    const events = ["pointerdown", "keydown", "wheel"] as const;
+    for (const event of events) window.addEventListener(event, reset, { passive: true });
+    return () => {
+      window.clearTimeout(timer);
+      for (const event of events) window.removeEventListener(event, reset);
+    };
+  }, [user, signOut]);
 
   const setOnline = useCallback((value: boolean) => {
     setOnlineState(value);

@@ -1,6 +1,3 @@
-import { randomBytes } from "node:crypto";
-
-import { getAuth } from "firebase-admin/auth";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { logger } from "firebase-functions";
 import { defineSecret } from "firebase-functions/params";
@@ -8,7 +5,6 @@ import { HttpsError, onCall } from "firebase-functions/v2/https";
 
 import { FUNCTION_REGION } from "../../config/runtime";
 import { db } from "../../lib/firebase";
-import { derivePinHash } from "../staff-auth/pin-crypto";
 import { mapSeed } from "./map-seed";
 import type { SeedPayload } from "./types";
 
@@ -50,37 +46,12 @@ export const provisionTenant = onCall(
     }
 
     const now = Timestamp.now();
-    const auth = getAuth();
-    const createdStaff: { staffId: string; uid: string; email: string }[] = [];
 
-    // 1. Auth identities and custom claims. Firestore rules read these claims,
-    //    so a staff member without them can see nothing at all.
-    for (const staff of seed.staff) {
-      const password = randomBytes(24).toString("base64url");
-      let uid: string;
-      try {
-        const existing = await auth.getUserByEmail(staff.email);
-        uid = existing.uid;
-        await auth.updateUser(uid, { displayName: staff.name });
-      } catch {
-        const created = await auth.createUser({
-          email: staff.email,
-          password,
-          displayName: staff.name,
-          emailVerified: true,
-        });
-        uid = created.uid;
-      }
+    // Provisioning no longer creates staff. Identities come from Firebase Auth
+    // with a password their owner chose: bootstrapOwner mints the first account
+    // and createStaffUser handles the rest, so no credential is ever seeded.
 
-      await auth.setCustomUserClaims(uid, {
-        tenant_id: seed.tenantId,
-        staff_id: staff.id,
-        staff_role: staff.role,
-      });
-      createdStaff.push({ staffId: staff.id, uid, email: staff.email });
-    }
-
-    // 2. Firestore documents, batched. Well under the 500-write limit for this
+    // Firestore documents, batched. Well under the 500-write limit for this
     //    dataset, but chunked so a larger catalogue does not silently break.
     const writes: { ref: FirebaseFirestore.DocumentReference; data: unknown }[] = [];
     const push = (path: string, id: string, value: Record<string, unknown>) =>
@@ -97,30 +68,6 @@ export const provisionTenant = onCall(
     for (const supplier of seed.suppliers) push("suppliers", supplier.id, supplier);
     for (const balance of seed.stockBalances) {
       push("stock_balances", balance.id, { ...balance, updatedAt: now });
-    }
-
-    for (const staff of seed.staff) {
-      const record = createdStaff.find((entry) => entry.staffId === staff.id);
-      push("staff", staff.id, {
-        tenantId: seed.tenantId,
-        name: staff.name,
-        email: staff.email,
-        phone: staff.phone,
-        role: staff.role,
-        status: "active",
-        authUid: record?.uid ?? null,
-      });
-
-      // PIN material never leaves the server; only salt and hash are stored.
-      const salt = randomBytes(16);
-      const hash = await derivePinHash(staff.pin, salt);
-      push("staff_pin_credentials", `${seed.tenantId}_${staff.id}`, {
-        tenantId: seed.tenantId,
-        staffId: staff.id,
-        pinSaltBase64: salt.toString("base64"),
-        pinHashBase64: hash.toString("base64"),
-        updatedAt: now,
-      });
     }
 
     // Invoice counter starts where the branch has not sold anything yet.
@@ -148,7 +95,6 @@ export const provisionTenant = onCall(
       entityType: "tenant",
       entityId: seed.tenantId,
       metadata: {
-        staff: createdStaff.length,
         products: seed.products.length,
         documents: writes.length,
       },
@@ -158,13 +104,11 @@ export const provisionTenant = onCall(
     logger.info("Tenant provisioned", {
       tenantId: seed.tenantId,
       documents: writes.length,
-      staff: createdStaff.length,
     });
 
     return {
       tenantId: seed.tenantId,
       documentsWritten: writes.length,
-      staff: createdStaff.map((entry) => ({ staffId: entry.staffId, email: entry.email })),
       products: seed.products.length,
       stockBalances: seed.stockBalances.length,
     };

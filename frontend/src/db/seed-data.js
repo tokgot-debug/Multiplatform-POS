@@ -32,13 +32,13 @@ export const device = {
   };
 
 export const users = [
-    { id: 'user-cashier-1', tenant_id: TENANT_ID, name: 'Wanjiku Kamau', phone: '0712345678', email: 'wanjiku@kpos.co.ke', pin: '1111', status: 'ACTIVE', role: 'Cashier' },
-    { id: 'user-cashier-2', tenant_id: TENANT_ID, name: 'Mwangi Njoroge', phone: '0722345678', email: 'mwangi@kpos.co.ke', pin: '2222', status: 'ACTIVE', role: 'Cashier' },
-    { id: 'user-bar-staff', tenant_id: TENANT_ID, name: 'Mercy Wanjala', phone: '0725345678', email: 'mercy@kpos.co.ke', pin: '4444', status: 'ACTIVE', role: 'Bar Staff' },
-    { id: 'user-store-keeper', tenant_id: TENANT_ID, name: 'John Mutua', phone: '0728345678', email: 'john@kpos.co.ke', pin: '3333', status: 'ACTIVE', role: 'Store Keeper' },
-    { id: 'user-supervisor', tenant_id: TENANT_ID, name: 'Jane Mwende', phone: '0733345678', email: 'mwende@kpos.co.ke', pin: '9999', status: 'ACTIVE', role: 'Supervisor' },
-    { id: 'user-manager', tenant_id: TENANT_ID, name: 'Omondi Juma', phone: '0744345678', email: 'omondi@kpos.co.ke', pin: '8888', status: 'ACTIVE', role: 'Store Manager' },
-    { id: 'user-owner', tenant_id: TENANT_ID, name: 'Vanbransa Owner', phone: '0755345678', email: 'owner@kpos.co.ke', pin: '0000', status: 'ACTIVE', role: 'Owner' }
+    { id: 'user-cashier-1', tenant_id: TENANT_ID, name: 'Wanjiku Kamau', phone: '0712345678', email: 'wanjiku@kpos.co.ke', status: 'ACTIVE', role: 'Cashier' },
+    { id: 'user-cashier-2', tenant_id: TENANT_ID, name: 'Mwangi Njoroge', phone: '0722345678', email: 'mwangi@kpos.co.ke', status: 'ACTIVE', role: 'Cashier' },
+    { id: 'user-bar-staff', tenant_id: TENANT_ID, name: 'Mercy Wanjala', phone: '0725345678', email: 'mercy@kpos.co.ke', status: 'ACTIVE', role: 'Bar Staff' },
+    { id: 'user-store-keeper', tenant_id: TENANT_ID, name: 'John Mutua', phone: '0728345678', email: 'john@kpos.co.ke', status: 'ACTIVE', role: 'Store Keeper' },
+    { id: 'user-supervisor', tenant_id: TENANT_ID, name: 'Jane Mwende', phone: '0733345678', email: 'mwende@kpos.co.ke', status: 'ACTIVE', role: 'Supervisor' },
+    { id: 'user-manager', tenant_id: TENANT_ID, name: 'Omondi Juma', phone: '0744345678', email: 'omondi@kpos.co.ke', status: 'ACTIVE', role: 'Store Manager' },
+    { id: 'user-owner', tenant_id: TENANT_ID, name: 'Vanbransa Owner', phone: '0755345678', email: 'owner@kpos.co.ke', status: 'ACTIVE', role: 'Owner' }
   ];
 
 export const categories = [

@@ -10,18 +10,11 @@ export class TillView {
     this.parkedCarts = []; // Suspended carts
     this.selectedCustomer = null;
     this.mpesa = new MpesaService();
-    this.selectedPaymentMethod = 'CASH'; // CASH, MPESA, CREDIT, SPLIT, CARD_PAYSTACK, AIRTEL_PAYSTACK, BANK_PAYSTACK
+    this.selectedPaymentMethod = 'CASH'; // CASH, MPESA, CREDIT, SPLIT
     this.splitDetails = { cash: 0, mpesa: 0 };
-    this.paystackRef = null;
-    this.loadPaystackScript();
-  }
-
-  loadPaystackScript() {
-    if (window.PaystackPop) return;
-    const script = document.createElement('script');
-    script.src = 'https://js.paystack.co/v1/inline.js';
-    script.async = true;
-    document.head.appendChild(script);
+    this.mpesaRef = null;
+    // Only ever set from a backend-confirmed payment; gates finalizeInvoice.
+    this.mpesaVerified = false;
   }
 
   async load() {
@@ -167,27 +160,6 @@ export class TillView {
                   <p>Combine Cash and M-Pesa</p>
                 </div>
               </div>
-              <div class="payment-method-card" data-method="CARD_PAYSTACK">
-                <span style="font-size:20px;">💳</span>
-                <div>
-                  <h4>Visa / Mastercard</h4>
-                  <p>Paystack card checkout</p>
-                </div>
-              </div>
-              <div class="payment-method-card" data-method="AIRTEL_PAYSTACK">
-                <span style="font-size:20px;">🔴</span>
-                <div>
-                  <h4>Airtel Money</h4>
-                  <p>Airtel mobile money via Paystack</p>
-                </div>
-              </div>
-              <div class="payment-method-card" data-method="BANK_PAYSTACK">
-                <span style="font-size:20px;">🏛️</span>
-                <div>
-                  <h4>Bank Transfer</h4>
-                  <p>Bank transfer via Paystack</p>
-                </div>
-              </div>
             </div>
 
             <!-- Input Column -->
@@ -244,36 +216,6 @@ export class TillView {
                 <input type="number" id="pay-split-mpesa" placeholder="M-Pesa portion...">
                 <input type="text" id="pay-split-phone" placeholder="M-Pesa Phone Number" style="margin-top:4px;">
                 <button class="primary-btn" id="pay-split-trigger-stk">Trigger M-Pesa STK</button>
-              </div>
-
-              <!-- Paystack Card inputs -->
-              <div class="checkout-inputs hidden" id="payment-inputs-card">
-                <label style="font-size:11px;color:var(--text-secondary)">Customer Email Address (Required)</label>
-                <input type="email" id="pay-card-email" placeholder="customer@example.com" value="customer@titanium.com">
-                <button class="primary-btn" id="pay-trigger-card-paystack" style="margin-top:8px;background:#c8832a;color:#fff;border:none;">Launch Card Payment 💳</button>
-                <div id="card-paystack-status" class="hidden" style="margin-top:8px;text-align:center;font-size:12px;">
-                  <span class="badge warning" id="card-paystack-badge">Waiting for Paystack...</span>
-                </div>
-              </div>
-
-              <!-- Paystack Airtel inputs -->
-              <div class="checkout-inputs hidden" id="payment-inputs-airtel">
-                <label style="font-size:11px;color:var(--text-secondary)">Customer Email Address (Required)</label>
-                <input type="email" id="pay-airtel-email" placeholder="customer@example.com" value="customer@titanium.com">
-                <button class="primary-btn" id="pay-trigger-airtel-paystack" style="margin-top:8px;background:#c8832a;color:#fff;border:none;">Launch Airtel Money 🔴</button>
-                <div id="airtel-paystack-status" class="hidden" style="margin-top:8px;text-align:center;font-size:12px;">
-                  <span class="badge warning" id="airtel-paystack-badge">Waiting for Paystack...</span>
-                </div>
-              </div>
-
-              <!-- Paystack Bank Transfer inputs -->
-              <div class="checkout-inputs hidden" id="payment-inputs-bank">
-                <label style="font-size:11px;color:var(--text-secondary)">Customer Email Address (Required)</label>
-                <input type="email" id="pay-bank-email" placeholder="customer@example.com" value="customer@titanium.com">
-                <button class="primary-btn" id="pay-trigger-bank-paystack" style="margin-top:8px;background:#c8832a;color:#fff;border:none;">Launch Bank Transfer 🏛️</button>
-                <div id="bank-paystack-status" class="hidden" style="margin-top:8px;text-align:center;font-size:12px;">
-                  <span class="badge warning" id="bank-paystack-badge">Waiting for Paystack...</span>
-                </div>
               </div>
 
               <div style="display:flex;gap:10px;margin-top:auto;">
@@ -377,17 +319,6 @@ export class TillView {
       this.triggerSplitMpesaStk();
     });
 
-    // Paystack triggers
-    document.getElementById('pay-trigger-card-paystack').addEventListener('click', () => {
-      this.triggerPaystack('card');
-    });
-    document.getElementById('pay-trigger-airtel-paystack').addEventListener('click', () => {
-      this.triggerPaystack('mobile_money');
-    });
-    document.getElementById('pay-trigger-bank-paystack').addEventListener('click', () => {
-      this.triggerPaystack('bank');
-    });
-
     // Cancel / Close buttons
     document.getElementById('pay-cancel-btn').addEventListener('click', () => {
       document.getElementById('payment-modal').classList.remove('active');
@@ -446,7 +377,7 @@ export class TillView {
       card.setAttribute('data-barcode', barcodeVal);
 
       card.innerHTML = `
-        <div style="height: 120px; border-radius: 8px; margin-bottom: 8px; background: url('${prod.image_data ? (prod.image_data.includes('?') ? prod.image_data : prod.image_data + '?v=2') : '/ai_images/juice_glass.jpg'}') center/cover no-repeat; border: 1px solid rgba(255, 255, 255, 0.05); display: flex; align-items: center; justify-content: center;">
+        <div class="card-media" style="height: 120px; border-radius: 8px; margin-bottom: 8px; background: url('${prod.image_data ? (prod.image_data.includes('?') ? prod.image_data : prod.image_data + '?v=2') : '/ai_images/juice_glass.jpg'}') center/cover no-repeat; border: 1px solid rgba(255, 255, 255, 0.05); display: flex; align-items: center; justify-content: center;">
           ${!prod.image_data ? '<span style="font-size:24px; opacity:0.3;">📷</span>' : ''}
         </div>
         <div>
@@ -703,9 +634,12 @@ export class TillView {
     document.getElementById('payment-inputs-mpesa').classList.add('hidden');
     document.getElementById('payment-inputs-credit').classList.add('hidden');
     document.getElementById('payment-inputs-split').classList.add('hidden');
-    document.getElementById('payment-inputs-card').classList.add('hidden');
-    document.getElementById('payment-inputs-airtel').classList.add('hidden');
-    document.getElementById('payment-inputs-bank').classList.add('hidden');
+
+    // Every tender starts confirmable; only the credit check takes that away.
+    // Without this reset, a breached credit limit left the button disabled for
+    // whatever tender the cashier switched to next.
+    document.getElementById('pay-confirm-btn').disabled = false;
+    document.getElementById('credit-warn-text').innerText = '';
 
     // Show selected
     if (method === 'CASH') {
@@ -716,36 +650,60 @@ export class TillView {
       document.getElementById('payment-inputs-mpesa').classList.remove('hidden');
       document.getElementById('pay-mpesa-phone').value = this.selectedCustomer.phone || '';
       document.getElementById('stk-status-area').classList.add('hidden');
+      document.getElementById('pay-trigger-stk').disabled = state.syncManager.connectionStatus === 'OFFLINE';
     } else if (method === 'CREDIT') {
       document.getElementById('payment-inputs-credit').classList.remove('hidden');
-      document.getElementById('pay-credit-limit').innerText = `KES ${this.selectedCustomer.credit_limit.toFixed(2)}`;
-      
-      const outstanding = 0; // Simple mock outstanding debtor balance
-      document.getElementById('pay-credit-balance').innerText = `KES ${outstanding.toFixed(2)}`;
-      
-      const warn = document.getElementById('credit-warn-text');
-      if (this.totals.total > (this.selectedCustomer.credit_limit - outstanding)) {
-        warn.innerText = 'CREDIT LIMIT BREACHED. Approval required to post sale.';
-        document.getElementById('pay-confirm-btn').disabled = true;
-      } else {
-        warn.innerText = '';
-        document.getElementById('pay-confirm-btn').disabled = false;
-      }
+      this.applyCreditLimit();
     } else if (method === 'SPLIT') {
       document.getElementById('payment-inputs-split').classList.remove('hidden');
       document.getElementById('pay-split-cash').value = (this.totals.total / 2).toFixed(2);
       document.getElementById('pay-split-mpesa').value = (this.totals.total / 2).toFixed(2);
       document.getElementById('pay-split-phone').value = this.selectedCustomer.phone || '';
-    } else if (method === 'CARD_PAYSTACK') {
-      document.getElementById('payment-inputs-card').classList.remove('hidden');
-      document.getElementById('pay-card-email').value = this.selectedCustomer.email || 'customer@titanium.com';
-    } else if (method === 'AIRTEL_PAYSTACK') {
-      document.getElementById('payment-inputs-airtel').classList.remove('hidden');
-      document.getElementById('pay-airtel-email').value = this.selectedCustomer.email || 'customer@titanium.com';
-    } else if (method === 'BANK_PAYSTACK') {
-      document.getElementById('payment-inputs-bank').classList.remove('hidden');
-      document.getElementById('pay-bank-email').value = this.selectedCustomer.email || 'customer@titanium.com';
+      document.getElementById('pay-split-trigger-stk').disabled = state.syncManager.connectionStatus === 'OFFLINE';
     }
+  }
+
+  /**
+   * What this customer already owes on account.
+   *
+   * ponytail: every credit sale counts as outstanding for good - there is no
+   * repayment flow in the system yet. Subtract settlements here once one
+   * exists, rather than teaching the caller about it.
+   */
+  async creditOutstanding(customerId) {
+    if (!customerId) return 0;
+
+    const sales = await db.sales.where('customer_id').equals(customerId).toArray();
+    if (sales.length === 0) return 0;
+
+    const payments = await db.payments
+      .where('sale_id').anyOf(sales.map(sale => sale.id))
+      .toArray();
+
+    return payments
+      .filter(payment => String(payment.method).toUpperCase() === 'CREDIT')
+      .reduce((total, payment) => total + (Number(payment.amount) || 0), 0);
+  }
+
+  /** Shows the real debtor position and blocks a sale that would breach it. */
+  async applyCreditLimit() {
+    const limit = Number(this.selectedCustomer.credit_limit) || 0;
+    document.getElementById('pay-credit-limit').innerText = `KES ${limit.toFixed(2)}`;
+    document.getElementById('pay-credit-balance').innerText = 'Checking...';
+
+    const outstanding = await this.creditOutstanding(this.selectedCustomer.id);
+
+    // The cashier may have switched tender while that read was in flight;
+    // acting now would disable Confirm for whatever they moved to.
+    if (this.selectedPaymentMethod !== 'CREDIT') return;
+
+    document.getElementById('pay-credit-balance').innerText = `KES ${outstanding.toFixed(2)}`;
+
+    const breached = this.totals.total > (limit - outstanding);
+    document.getElementById('credit-warn-text').innerText = breached
+      ? 'CREDIT LIMIT BREACHED. Approval required to post sale.'
+      : '';
+    document.getElementById('pay-confirm-btn').disabled = breached;
   }
 
   updateCashChange(tendered) {
@@ -753,120 +711,142 @@ export class TillView {
     document.getElementById('pay-cash-change').innerText = `KES ${change.toFixed(2)}`;
   }
 
+  /**
+   * STK needs Safaricom reachable on both legs. There is no queue that makes an
+   * offline push work later, so the tender is refused rather than assumed paid.
+   */
+  mpesaOffline(notice) {
+    if (state.syncManager.connectionStatus !== 'OFFLINE') return false;
+    showNotification(notice, 'error');
+    return true;
+  }
+
   async triggerMpesaStk() {
     const phone = document.getElementById('pay-mpesa-phone').value;
     const stkStatus = document.getElementById('stk-status-area');
     const stkBadge = document.getElementById('stk-status-badge');
+    const trigger = document.getElementById('pay-trigger-stk');
 
     stkStatus.classList.remove('hidden');
     stkBadge.className = 'badge warning';
 
-    if (state.syncManager.connectionStatus === 'OFFLINE') {
-      stkBadge.innerText = 'Offline: Payment Queued';
-      this.mpesaRef = 'OFF-MP-' + crypto.randomUUID().slice(0, 6).toUpperCase();
-      showNotification('Offline Mode: M-Pesa assumed successful and queued for sync.', 'warning');
+    if (this.mpesaOffline('Offline: M-Pesa is unavailable. Take cash, or have the customer pay the paybill directly and key in the code.')) {
+      stkBadge.className = 'badge danger';
+      stkBadge.innerText = 'Offline: M-Pesa unavailable';
       return;
     }
 
     stkBadge.innerText = 'Initiating STK Push...';
+    trigger.disabled = true;
 
-    const res = await this.mpesa.initiateStkPush(phone, this.totals.total, 'KPOS_SALE');
-    if (res.success) {
+    try {
+      const res = await this.mpesa.initiateStkPush(phone, this.totals.total);
+      if (!res.success) {
+        stkBadge.className = 'badge danger';
+        stkBadge.innerText = 'Push refused';
+        showNotification(res.message, 'error');
+        return;
+      }
+
       stkBadge.innerText = 'Awaiting User PIN on Phone...';
-      
-      // Simulate Safaricom response callback processing
-      const callbackRes = await this.mpesa.simulateCallback(res.CheckoutRequestID, true);
-      
-      if (callbackRes.success) {
+      const result = await this.mpesa.awaitResult(res.checkoutRequestId, (text) => {
+        stkBadge.innerText = text;
+      });
+
+      if (result.status === 'paid') {
         stkBadge.className = 'badge success';
-        stkBadge.innerText = `Confirmed. Code: ${callbackRes.mpesaReceipt}`;
-        this.mpesaRef = callbackRes.mpesaReceipt;
-        showNotification(`M-Pesa payment received. Receipt Ref: ${callbackRes.mpesaReceipt}`, 'success');
+        stkBadge.innerText = result.receipt ? `Confirmed. Code: ${result.receipt}` : 'Confirmed.';
+        this.mpesaRef = result.receipt || res.checkoutRequestId;
+        this.mpesaVerified = true;
+        showNotification(`M-Pesa payment received. Ref: ${this.mpesaRef}`, 'success');
+      } else if (result.status === 'pending') {
+        stkBadge.className = 'badge warning';
+        stkBadge.innerText = 'Unconfirmed - do not release goods';
+        showNotification('M-Pesa has not confirmed this payment. Retry the push or take another tender.', 'warning');
       } else {
         stkBadge.className = 'badge danger';
-        stkBadge.innerText = 'Callback Cancelled.';
-        showNotification('M-Pesa STK Push rejected or expired.', 'error');
+        stkBadge.innerText = result.resultDesc || 'Payment failed or cancelled.';
+        showNotification('M-Pesa push rejected, cancelled, or expired.', 'error');
       }
-    } else {
-      stkStatus.classList.add('hidden');
-      showNotification(res.message, 'error');
+    } catch (error) {
+      stkBadge.className = 'badge danger';
+      stkBadge.innerText = 'Could not reach M-Pesa';
+      showNotification(error.message || 'M-Pesa request failed.', 'error');
+    } finally {
+      trigger.disabled = false;
     }
   }
 
   async triggerSplitMpesaStk() {
     const phone = document.getElementById('pay-split-phone').value;
     const mpesaPortion = parseFloat(document.getElementById('pay-split-mpesa').value) || 0;
-    
-    if (state.syncManager.connectionStatus === 'OFFLINE') {
-      this.mpesaRef = 'OFF-MP-' + crypto.randomUUID().slice(0, 6).toUpperCase();
-      showNotification('Offline Mode: Split M-Pesa portion queued for sync.', 'warning');
-      return;
-    }
+    const trigger = document.getElementById('pay-split-trigger-stk');
+
+    if (this.mpesaOffline('Offline: the M-Pesa half of a split cannot be taken. Settle the whole sale in cash.')) return;
 
     showNotification('Initiating split M-Pesa STK push...', 'warning');
-    const res = await this.mpesa.initiateStkPush(phone, mpesaPortion, 'KPOS_SPLIT_SALE');
-    if (res.success) {
-      const callback = await this.mpesa.simulateCallback(res.CheckoutRequestID, true);
-      if (callback.success) {
-        this.mpesaRef = callback.mpesaReceipt;
-        showNotification(`Split portion of KES ${mpesaPortion} paid. Ref: ${callback.mpesaReceipt}`, 'success');
+    trigger.disabled = true;
+
+    try {
+      const res = await this.mpesa.initiateStkPush(phone, mpesaPortion);
+      if (!res.success) {
+        showNotification(res.message, 'error');
+        return;
       }
+
+      const result = await this.mpesa.awaitResult(res.checkoutRequestId);
+      if (result.status === 'paid') {
+        this.mpesaRef = result.receipt || res.checkoutRequestId;
+        this.mpesaVerified = true;
+        showNotification(`Split portion of KES ${mpesaPortion} paid. Ref: ${this.mpesaRef}`, 'success');
+      } else {
+        showNotification('The M-Pesa half of this split was not confirmed. Do not complete the sale.', 'error');
+      }
+    } catch (error) {
+      showNotification(error.message || 'M-Pesa request failed.', 'error');
+    } finally {
+      trigger.disabled = false;
     }
   }
 
-  async triggerPaystack(channel) {
-    const emailInputId = channel === 'card' ? 'pay-card-email' : channel === 'mobile_money' ? 'pay-airtel-email' : 'pay-bank-email';
-    const statusWrapId = channel === 'card' ? 'card-paystack-status' : channel === 'mobile_money' ? 'airtel-paystack-status' : 'bank-paystack-status';
-    const badgeId = channel === 'card' ? 'card-paystack-badge' : channel === 'mobile_money' ? 'airtel-paystack-badge' : 'bank-paystack-badge';
+  /**
+   * One row per tender actually taken.
+   *
+   * A split used to be written as a single 'SPLIT' row carrying the whole
+   * total, which the backend has no method for and which lost the cash/M-Pesa
+   * breakdown the drawer count and the M-Pesa ledger both need. Splits now
+   * settle as the two payments they really are.
+   */
+  buildPaymentRecords(saleId) {
+    const now = new Date().toISOString();
+    const row = (method, amount, reference, verified) => ({
+      id: crypto.randomUUID(),
+      sale_id: saleId,
+      method,
+      amount: Number(amount.toFixed(2)),
+      reference: reference || '',
+      provider_txn_id: reference || '',
+      // Verified means a provider confirmed it, never that a method was picked.
+      verified: verified ? 1 : 0,
+      received_at: now
+    });
 
-    const email = document.getElementById(emailInputId).value || 'customer@titanium.com';
-    const statusWrap = document.getElementById(statusWrapId);
-    const badge = document.getElementById(badgeId);
-
-    statusWrap.classList.remove('hidden');
-    badge.className = 'badge warning';
-    badge.innerText = 'Initializing...';
-
-    if (!window.PaystackPop) {
-      showNotification('Paystack script is still loading. Please try again.', 'error');
-      badge.innerText = 'Script not ready';
-      return;
+    if (this.selectedPaymentMethod === 'SPLIT') {
+      const mpesaPortion = parseFloat(document.getElementById('pay-split-mpesa').value) || 0;
+      const cashPortion = Number((this.totals.total - mpesaPortion).toFixed(2));
+      const rows = [];
+      if (cashPortion > 0) rows.push(row('CASH', cashPortion, '', true));
+      rows.push(row('MPESA', mpesaPortion, this.mpesaRef, this.mpesaVerified));
+      return rows;
     }
 
-    const paystackKey = localStorage.getItem('paystack_public_key') || 'pk_test_a42095cc1a55f9a7444b02000000000000000000';
-    const ref = 'PST-' + crypto.randomUUID().slice(0, 8).toUpperCase();
-    const amount = Math.round(this.totals.total * 100);
-
-    try {
-      const handler = PaystackPop.setup({
-        key: paystackKey,
-        email: email,
-        amount: amount,
-        currency: 'KES',
-        ref: ref,
-        channels: channel === 'card' ? ['card'] : channel === 'mobile_money' ? ['mobile_money'] : ['bank_transfer'],
-        callback: (response) => {
-          badge.className = 'badge success';
-          badge.innerText = 'Paid. Ref: ' + response.reference;
-          this.paystackRef = response.reference;
-          showNotification('Paystack payment success: ' + response.reference, 'success');
-          
-          setTimeout(() => {
-            this.finalizeInvoice();
-          }, 1500);
-        },
-        onClose: () => {
-          badge.className = 'badge danger';
-          badge.innerText = 'Payment Cancelled';
-          showNotification('Paystack checkout closed.', 'warning');
-        }
-      });
-      handler.openIframe();
-    } catch (e) {
-      badge.className = 'badge danger';
-      badge.innerText = 'Failed: ' + e.message;
-      showNotification('Paystack setup failed: ' + e.message, 'error');
+    if (this.selectedPaymentMethod === 'MPESA') {
+      return [row('MPESA', this.totals.total, this.mpesaRef, this.mpesaVerified)];
     }
+
+    // Cash is settled at the drawer and credit is a receivable on the books;
+    // neither has a provider to confirm it, so both count as settled here.
+    return [row(this.selectedPaymentMethod, this.totals.total, '', true)];
   }
 
   async finalizeInvoice() {
@@ -880,6 +860,13 @@ export class TillView {
     const openShift = await db.shifts.where('status').equals('OPEN').first();
     if (!openShift) {
       showNotification('No open cashier shift found. Open shift before completing sales.', 'error');
+      return;
+    }
+
+    // A sale is never booked against an M-Pesa payment the backend has not
+    // confirmed. Cash and credit are settled at the counter; M-Pesa is not.
+    if ((this.selectedPaymentMethod === 'MPESA' || this.selectedPaymentMethod === 'SPLIT') && !this.mpesaVerified) {
+      showNotification('M-Pesa is not confirmed for this sale. Run the STK push and wait for confirmation.', 'error');
       return;
     }
 
@@ -905,16 +892,9 @@ export class TillView {
       etims_solution: 'OSCU'
     };
 
-    const paymentRecord = {
-      id: crypto.randomUUID(),
-      sale_id: saleId,
-      method: this.selectedPaymentMethod,
-      amount: this.totals.total,
-      reference: this.selectedPaymentMethod.includes('PAYSTACK') ? (this.paystackRef || '') : (this.mpesaRef || ''),
-      provider_txn_id: this.selectedPaymentMethod.includes('PAYSTACK') ? (this.paystackRef || '') : (this.mpesaRef || ''),
-      verified: this.selectedPaymentMethod.includes('PAYSTACK') ? 1 : (this.selectedPaymentMethod === 'MPESA' ? 1 : 0),
-      received_at: new Date().toISOString()
-    };
+    const paymentRecords = this.buildPaymentRecords(saleId);
+    // The receipt prints one settlement line; a split shows its M-Pesa half.
+    const paymentRecord = paymentRecords[paymentRecords.length - 1];
 
     // Perform database operations within atomic transactions
     await db.transaction('rw', [db.sales, db.sale_lines, db.payments, db.stock_movements, db.audit_log], async () => {
@@ -964,7 +944,9 @@ export class TillView {
       }
 
       // 3. Write payment records
-      await db.payments.add(paymentRecord);
+      for (const record of paymentRecords) {
+        await db.payments.add(record);
+      }
 
       // 4. Log audit session
       await logAuditEvent(state.currentTenant.id, state.currentUser.id, 'SALE_CHECKOUT', 'SALE', saleId);
@@ -1050,7 +1032,7 @@ export class TillView {
       </div>
       <div class="receipt-divider"></div>
       <div style="font-size:10px; margin-bottom: 8px;">
-        <div><b>Settlement:</b> ${payment.method === 'CARD_PAYSTACK' ? 'Visa/Mastercard (Paystack)' : payment.method === 'AIRTEL_PAYSTACK' ? 'Airtel Money (Paystack)' : payment.method === 'BANK_PAYSTACK' ? 'Bank Transfer (Paystack)' : payment.method}</div>
+        <div><b>Settlement:</b> ${payment.method}</div>
         ${payment.reference ? `<div><b>Ref:</b> ${payment.reference}</div>` : ''}
       </div>
       <div class="receipt-divider"></div>
@@ -1087,6 +1069,8 @@ export class TillView {
     this.cart = [];
     this.selectedPaymentMethod = 'CASH';
     this.mpesaRef = null;
+    // Must reset with the cart, or the next sale inherits this one's proof.
+    this.mpesaVerified = false;
     this.updateCartUI();
   }
 

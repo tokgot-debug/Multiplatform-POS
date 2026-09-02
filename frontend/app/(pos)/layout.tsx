@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 
-import { PinLock } from "@/components/pin-lock";
+import { SignIn } from "@/components/sign-in";
 import { PosSessionProvider, usePosSession } from "@/components/pos-session";
 import { Sidebar } from "@/components/sidebar";
 
@@ -23,7 +23,7 @@ function Shell({ children }: { children: ReactNode }) {
     );
   }
 
-  if (!ready || !user) return <PinLock />;
+  if (!ready || !user) return <SignIn />;
 
   return (
     <div id="pos-shell">

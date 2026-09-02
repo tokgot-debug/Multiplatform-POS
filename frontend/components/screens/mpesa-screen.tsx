@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { db } from "@/db/schema";
+import { PAGE_SIZE, paginate } from "@/services/paginate";
 
 /**
  * M-Pesa payments viewer, ported from src/ui/mpesa.js.
@@ -24,6 +25,16 @@ type Payment = {
 
 const CELL = { padding: "12px 16px", fontSize: 13 } as const;
 const HEAD_CELL = { padding: "12px 16px", fontSize: 11, color: "var(--text-secondary)" } as const;
+const PAGER_BUTTON = {
+  background: "rgba(255,255,255,0.05)",
+  border: "1px solid var(--border-color)",
+  borderRadius: 6,
+  padding: "6px 12px",
+  color: "var(--text-primary)",
+  fontFamily: "var(--font-main)",
+  fontSize: 12,
+  cursor: "pointer",
+} as const;
 
 function formatDate(value?: string) {
   return new Date(value ?? "").toLocaleString("en-US", {
@@ -36,6 +47,7 @@ export function MpesaScreen() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("ALL");
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     db.payments
@@ -68,6 +80,12 @@ export function MpesaScreen() {
 
     return { successTotal: success, failedTotal: failed, rows: visible };
   }, [payments, search, filter]);
+
+  // paginate clamps, so a filter that shrinks the list cannot strand the user
+  // on an empty page; this only resets the scroll position back to the start.
+  useEffect(() => setPage(1), [search, filter]);
+
+  const view = paginate(rows, page, PAGE_SIZE);
 
   return (
     <div style={{ padding: 24, color: "var(--text-primary)", maxWidth: 1200, margin: "0 auto" }}>
@@ -125,14 +143,14 @@ export function MpesaScreen() {
               </tr>
             </thead>
             <tbody id="mpesa-table-body">
-              {rows.length === 0 ? (
+              {view.rows.length === 0 ? (
                 <tr>
                   <td colSpan={6} style={{ padding: 24, textAlign: "center", color: "var(--text-muted)" }}>
                     No Mpesa transactions found.
                   </td>
                 </tr>
               ) : (
-                rows.map((payment) => {
+                view.rows.map((payment) => {
                   const status = payment.status || "SUCCESS";
                   const isSuccess = status === "SUCCESS";
                   return (
@@ -162,6 +180,31 @@ export function MpesaScreen() {
             </tbody>
           </table>
         </div>
+
+        {view.total > 0 && (
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", borderTop: "1px solid var(--border-color)", fontSize: 12, color: "var(--text-secondary)" }}>
+            <span>{`Showing ${view.from}-${view.to} of ${view.total}`}</span>
+            <span style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <button
+                type="button"
+                onClick={() => setPage(view.page - 1)}
+                disabled={view.page <= 1}
+                style={PAGER_BUTTON}
+              >
+                Prev
+              </button>
+              <span>{`Page ${view.page} of ${view.pages}`}</span>
+              <button
+                type="button"
+                onClick={() => setPage(view.page + 1)}
+                disabled={view.page >= view.pages}
+                style={PAGER_BUTTON}
+              >
+                Next
+              </button>
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );

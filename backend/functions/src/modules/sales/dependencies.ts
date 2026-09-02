@@ -3,6 +3,7 @@ import { HttpsError } from "firebase-functions/v2/https";
 
 import { db } from "../../lib/firebase";
 import { deterministicId } from "../../shared/identifiers";
+import { needsProviderIntent } from "./constants";
 import type {
   ParsedSaleInput,
   PreparedLine,
@@ -28,7 +29,7 @@ export async function loadSaleDependencies(
   );
 
   const digitalPayments = input.payments.filter(
-    (payment) => payment.method !== "cash",
+    (payment) => needsProviderIntent(payment.method),
   );
   for (const payment of digitalPayments) {
     if (!payment.reference) {

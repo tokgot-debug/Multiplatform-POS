@@ -31,7 +31,8 @@
     ],
     "headers": [
       {
-        "source": "**/*.html",
+        "comment": "Clean URLs like /till/ never matched **/*.html, so pages were cached for an hour and a deploy took that long to reach a till. Revalidate everything, then let the fingerprinted assets below opt back in.",
+        "source": "**",
         "headers": [
           {
             "key": "Cache-Control",

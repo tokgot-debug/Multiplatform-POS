@@ -1,9 +1,12 @@
 import { db } from '../db/schema';
 import { state } from '../context';
+import { paginate } from '../services/paginate';
 
 export class OrdersView {
   constructor(container) {
     this.container = container;
+    this.page = 1;
+    this.pages = 1;
   }
 
   async load() {
@@ -87,9 +90,9 @@ export class OrdersView {
           <div style="padding: 16px 24px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--text-secondary);">
             <div id="orders-pagination-info">Showing 0 to 0 of 0</div>
             <div style="display: flex; align-items: center; gap: 8px;">
-              <button style="background: rgba(255,255,255,0.05); color: var(--text-secondary); border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 4px; cursor: pointer;">Previous</button>
-              <span style="font-weight: 700; color: #fff;">1 / 1</span>
-              <button style="background: rgba(255,255,255,0.05); color: var(--text-secondary); border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 4px; cursor: pointer;">Next</button>
+              <button id="orders-prev" style="background: rgba(255,255,255,0.05); color: var(--text-secondary); border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 4px; cursor: pointer;">Previous</button>
+              <span id="orders-page-indicator" style="font-weight: 700; color: #fff;">1 / 1</span>
+              <button id="orders-next" style="background: rgba(255,255,255,0.05); color: var(--text-secondary); border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 4px; cursor: pointer;">Next</button>
             </div>
           </div>
           
@@ -224,14 +227,18 @@ export class OrdersView {
 
     if (sales.length === 0) {
       tbody.innerHTML = '<tr><td colspan="8" style="padding: 40px; text-align: center; color: var(--text-muted);">No matching orders found.</td></tr>';
-      const info = document.getElementById('orders-pagination-info');
-      if (info) info.textContent = 'Showing 0 to 0 of 0';
+      this.renderPager(paginate([], 1));
       return;
     }
 
+    const view = paginate(sales, this.page);
+    // paginate clamps, so a filter that shrinks the list lands the user on the
+    // last real page instead of an empty one. Keep our copy in step with it.
+    this.page = view.page;
+
     let rowsHtml = '';
 
-    for (const sale of sales) {
+    for (const sale of view.rows) {
       const dt = new Date(sale.sold_at);
       const dateStr = dt.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
       const timeStr = dt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
@@ -302,31 +309,70 @@ export class OrdersView {
     }
 
     tbody.innerHTML = rowsHtml;
-    
+    this.renderPager(view);
+  }
+
+  /** Drives the footer that already existed in the markup but was never wired. */
+  renderPager(view) {
     const info = document.getElementById('orders-pagination-info');
-    if (info) info.textContent = `Showing 1 to ${sales.length} of ${sales.length}`;
+    if (info) info.textContent = `Showing ${view.from} to ${view.to} of ${view.total}`;
+
+    const indicator = document.getElementById('orders-page-indicator');
+    if (indicator) indicator.textContent = `${view.page} / ${view.pages}`;
+
+    const previous = document.getElementById('orders-prev');
+    if (previous) previous.disabled = view.page <= 1;
+
+    const next = document.getElementById('orders-next');
+    if (next) next.disabled = view.page >= view.pages;
+
+    this.pages = view.pages;
   }
   
+  /** Any filter change starts again at page one. */
+  refilter() {
+    this.page = 1;
+    this.populateOrders();
+  }
+
   bindEvents() {
     // Filter Listeners
     const searchInput = document.getElementById('orders-search-input');
     if (searchInput) {
-      searchInput.addEventListener('input', () => this.populateOrders());
+      searchInput.addEventListener('input', () => this.refilter());
     }
 
     const waiterFilter = document.getElementById('orders-waiter-filter');
     if (waiterFilter) {
-      waiterFilter.addEventListener('change', () => this.populateOrders());
+      waiterFilter.addEventListener('change', () => this.refilter());
     }
 
     const paymentFilter = document.getElementById('orders-payment-filter');
     if (paymentFilter) {
-      paymentFilter.addEventListener('change', () => this.populateOrders());
+      paymentFilter.addEventListener('change', () => this.refilter());
     }
 
     const statusFilter = document.getElementById('orders-status-filter');
     if (statusFilter) {
-      statusFilter.addEventListener('change', () => this.populateOrders());
+      statusFilter.addEventListener('change', () => this.refilter());
+    }
+
+    const previous = document.getElementById('orders-prev');
+    if (previous) {
+      previous.addEventListener('click', () => {
+        if (this.page <= 1) return;
+        this.page -= 1;
+        this.populateOrders();
+      });
+    }
+
+    const next = document.getElementById('orders-next');
+    if (next) {
+      next.addEventListener('click', () => {
+        if (this.page >= this.pages) return;
+        this.page += 1;
+        this.populateOrders();
+      });
     }
 
     // Export Listener

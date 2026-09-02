@@ -1,17 +1,7 @@
 import { HttpsError } from "firebase-functions/v2/https";
 
 import { TAX_BASIS_POINTS } from "../sales/constants";
-import type { MappedSeed, MappedStaff, SeedPayload } from "./types";
-
-/** The till's role labels -> the role codes the backend authorises against. */
-const ROLE_MAP: Record<string, string> = {
-  "Owner": "owner",
-  "Store Manager": "store_manager",
-  "Supervisor": "supervisor",
-  "Cashier": "cashier",
-  "Bar Staff": "bar_staff",
-  "Store Keeper": "store_keeper",
-};
+import type { MappedSeed, SeedPayload } from "./types";
 
 /** KES float -> integer minor units, rounded off the string form. */
 export function toMinor(value: unknown): number {
@@ -56,27 +46,6 @@ export function mapSeed(payload: SeedPayload): MappedSeed {
     label: text(device.label, "Till"),
     status: "active",
   }));
-
-  const staff: MappedStaff[] = (payload.users ?? []).map((user) => {
-    const role = ROLE_MAP[text(user.role)];
-    if (!role) {
-      throw new HttpsError("invalid-argument", `Unknown staff role "${String(user.role)}".`);
-    }
-    const pin = text(user.pin);
-    if (!/^\d{4}$/.test(pin)) {
-      throw new HttpsError("invalid-argument", `Staff ${String(user.id)} needs a four-digit PIN.`);
-    }
-    const id = requireId(user.id, "staff");
-    return {
-      id,
-      name: text(user.name, id),
-      // Auth needs a unique address; fall back to a routable-looking local one.
-      email: text(user.email, `${id}@${tenantId}.local`),
-      phone: text(user.phone),
-      role,
-      pin,
-    };
-  });
 
   const products = (payload.products ?? []).map((product) => {
     const id = requireId(product.id, "product");
@@ -191,7 +160,6 @@ export function mapSeed(payload: SeedPayload): MappedSeed {
       email: text(supplier.email),
       isActive: true,
     })),
-    staff,
     stockBalances,
   };
 }

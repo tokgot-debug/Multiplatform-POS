@@ -14,15 +14,6 @@ export type SeedPayload = {
   customers?: Record<string, unknown>[];
 };
 
-export type MappedStaff = {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  role: string;
-  pin: string;
-};
-
 export type MappedSeed = {
   tenantId: string;
   tenant: Record<string, unknown>;
@@ -34,6 +25,5 @@ export type MappedSeed = {
   barcodes: { id: string; [key: string]: unknown }[];
   customers: { id: string; [key: string]: unknown }[];
   suppliers: { id: string; [key: string]: unknown }[];
-  staff: MappedStaff[];
   stockBalances: { id: string; [key: string]: unknown }[];
 };

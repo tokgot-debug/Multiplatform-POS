@@ -7,6 +7,8 @@
  * configured, so the app keeps selling on a laptop with no project attached.
  */
 
+import { roleLabel } from './roles';
+
 const cfg = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -59,23 +61,66 @@ export function getFirebase() {
 export const DEVICE_ID = process.env.NEXT_PUBLIC_DEVICE_ID || 'device-till-01';
 
 /**
- * Exchanges a staff PIN for a Firebase session carrying tenant/staff claims.
+ * Signs a staff member in with the password they own.
  *
- * PIN verification is server-side (scrypt, timing-safe compare, five-attempt
- * lockout); the browser never holds PIN material. This is the till's entry
- * point - authenticateStaffPin cannot serve that role because it requires the
- * very claims a fresh till does not have yet.
+ * Firebase Authentication is the identity: the tenant, staff id and role ride
+ * back as custom claims on the ID token, so nothing about who this person is or
+ * what they may do is decided in the browser.
  */
-export async function startTillSession(staffId, pin, deviceId = DEVICE_ID, tenantId = TENANT_ID) {
+export async function signIn(email, password) {
   const fb = await getFirebase();
   if (!fb) throw new Error('Firebase is not configured on this till.');
 
-  const call = fb.functions.httpsCallable(fb.fnInstance, 'startTillSession');
-  const { data } = await call({ tenantId, staffId, deviceId, pin });
-  if (!data || !data.customToken) throw new Error('No session token was issued.');
+  const credential = await fb.auth.signInWithEmailAndPassword(
+    fb.authInstance,
+    String(email || '').trim(),
+    String(password || ''),
+  );
 
-  await fb.auth.signInWithCustomToken(fb.authInstance, data.customToken);
-  return data;
+  const token = await credential.user.getIdTokenResult();
+  const claims = token.claims || {};
+  if (!claims.tenant_id || !claims.staff_id) {
+    // An account with no claims can see nothing, so fail here with something
+    // the cashier can act on rather than at the first empty screen.
+    await fb.auth.signOut(fb.authInstance);
+    throw new Error('This account is not linked to a business yet. Ask your manager.');
+  }
+
+  return {
+    id: String(claims.staff_id),
+    authUid: credential.user.uid,
+    email: credential.user.email,
+    name: credential.user.displayName || credential.user.email,
+    role: roleLabel(claims.staff_role),
+    tenantId: String(claims.tenant_id),
+  };
+}
+
+/** Restores an existing session on reload, or null. */
+export async function restoreSession() {
+  const fb = await getFirebase();
+  if (!fb) return null;
+
+  const user = await new Promise((resolve) => {
+    const stop = fb.auth.onAuthStateChanged(fb.authInstance, (next) => {
+      stop();
+      resolve(next);
+    });
+  });
+  if (!user) return null;
+
+  const token = await user.getIdTokenResult();
+  const claims = token.claims || {};
+  if (!claims.tenant_id || !claims.staff_id) return null;
+
+  return {
+    id: String(claims.staff_id),
+    authUid: user.uid,
+    email: user.email,
+    name: user.displayName || user.email,
+    role: roleLabel(claims.staff_role),
+    tenantId: String(claims.tenant_id),
+  };
 }
 
 /**

@@ -1,11 +1,16 @@
 import { db } from '../db/schema';
 import { getStockOnHand, getBatchStockOnHand, logAuditEvent } from '../db/index';
 import { state, showNotification } from '../context';
+import { bindPager, pagerHtml, paginate } from '../services/paginate';
+import { ensureUniqueSkus, parseProductFile } from '../services/csv';
+import { callFunction } from '../services/firebase';
+import { pullCatalogue } from '../services/catalogue';
 
 export class InventoryView {
   constructor(container) {
     this.container = container;
     this.activeSubTab = 'ledger'; // ledger, takes, expiries
+    this.ledgerPage = 1;
   }
 
   async load() {
@@ -59,16 +64,148 @@ export class InventoryView {
     }
   }
 
+  /**
+   * Catalogue import from whatever spreadsheet the restaurant already keeps.
+   *
+   * The mapping it guessed is reported back alongside the result, because a
+   * column read as the wrong field is the failure that looks like a success.
+   */
+  bindImportEvents(pane) {
+    const trigger = document.getElementById('ledg-import-btn');
+    const picker = document.getElementById('ledg-import-file');
+    const report = document.getElementById('ledg-import-report');
+    if (!trigger || !picker || !report) return;
+
+    trigger.addEventListener('click', () => picker.click());
+
+    picker.addEventListener('change', async () => {
+      const file = picker.files && picker.files[0];
+      if (!file) return;
+      picker.value = '';
+
+      const note = (html, colour) => {
+        report.innerHTML = `<div style="margin:12px 0;padding:14px 16px;border:1px solid ${colour};border-radius:8px;font-size:13px;line-height:1.6;">${html}</div>`;
+      };
+
+      note(`Reading ${file.name}...`, 'var(--border-color)');
+
+      const parsed = await parseProductFile(file);
+      if (parsed.error) {
+        note(`<b style="color:var(--accent-rose)">Could not read that file.</b><br>${parsed.error}`, 'var(--accent-rose)');
+        return;
+      }
+      if (parsed.rows.length === 0) {
+        note('<b style="color:var(--accent-rose)">That file had no product rows.</b>', 'var(--accent-rose)');
+        return;
+      }
+
+      // Products are stored under their SKU, so a column that repeats would
+      // collapse hundreds of different items onto one record.
+      const { rows, generated, duplicates } = ensureUniqueSkus(parsed.rows);
+      const mapping = parsed.mapping;
+
+      const columns = Object.entries(mapping)
+        .map(([field, header]) => `${field} &larr; <b>${header}</b>`)
+        .join(' &middot; ');
+
+      // A Firestore batch holds 500 writes, so a real menu arrives in chunks.
+      // Each one commits on its own: a failure part way through keeps whatever
+      // already landed, and re-running the file is an upsert either way.
+      const CHUNK = 500;
+      const totals = { imported: 0, unpriced: [], rejected: [] };
+      let failure = null;
+
+      for (let start = 0; start < rows.length; start += CHUNK) {
+        const chunk = rows.slice(start, start + CHUNK);
+        note(
+          `Importing ${Math.min(start + CHUNK, rows.length)} of ${rows.length}...`
+            + `<br><span style="color:var(--text-muted)">${columns}</span>`,
+          'var(--border-color)',
+        );
+
+        try {
+          const result = await callFunction('importProducts', { rows: chunk });
+          totals.imported += result.imported;
+          // Row numbers come back relative to the chunk; restate them against
+          // the file the person is actually looking at.
+          for (const issue of result.unpriced) totals.unpriced.push({ ...issue, row: issue.row + start });
+          for (const issue of result.rejected) totals.rejected.push({ ...issue, row: issue.row + start });
+        } catch (err) {
+          failure = err.message || String(err);
+          break;
+        }
+      }
+
+      const lines = [
+        `<b style="color:${totals.imported ? 'var(--accent-green)' : 'var(--accent-rose)'}">`
+          + `Imported ${totals.imported} of ${rows.length} products.</b>`,
+        `<span style="color:var(--text-muted)">${columns}</span>`
+      ];
+
+      if (failure) {
+        lines.push(`<b style="color:var(--accent-rose)">Stopped early:</b> ${failure}. Anything already imported was kept - re-run the file to continue.`);
+      }
+      if (generated) {
+        lines.push(
+          `<b style="color:var(--accent-amber)">The ${mapping.sku ? `"${mapping.sku}"` : 'SKU'} column is not unique per product.</b> `
+            + `${generated} products were given a numbered code so they were not merged into one another. `
+            + 'Give the file real product codes if you want tidier SKUs.'
+        );
+      }
+      if (duplicates) {
+        lines.push(`<span style="color:var(--text-muted)">${duplicates} rows were exact repeats of another line and were skipped.</span>`);
+      }
+      if (totals.unpriced.length) {
+        lines.push(
+          `<b style="color:var(--accent-amber)">${totals.unpriced.length} came in with no price</b> and are held inactive until priced: `
+            + totals.unpriced.slice(0, 20).map((issue) => issue.sku).join(', ')
+            + (totals.unpriced.length > 20 ? ` and ${totals.unpriced.length - 20} more` : '')
+        );
+      }
+      if (totals.rejected.length) {
+        lines.push(
+          `<b style="color:var(--accent-rose)">${totals.rejected.length} rows were skipped:</b><br>`
+            + totals.rejected.slice(0, 10).map((issue) => `row ${issue.row}: ${issue.message}`).join('<br>')
+            + (totals.rejected.length > 10 ? `<br>and ${totals.rejected.length - 10} more` : '')
+        );
+      }
+
+      if (totals.imported) {
+        // The import writes to the server; the ledger reads Dexie. Without
+        // pulling the catalogue back down the products are invisible here.
+        try {
+          const cached = await pullCatalogue();
+          lines.push(`<span style="color:var(--text-muted)">Catalogue refreshed: ${cached} products now on this till.</span>`);
+        } catch (err) {
+          lines.push(`<b style="color:var(--accent-amber)">Imported, but this till could not refresh its catalogue:</b> ${err.message || err}`);
+        }
+      }
+
+      note(lines.join('<br>'), failure ? 'var(--accent-rose)' : 'var(--border-color)');
+      if (totals.imported) {
+        showNotification(`Imported ${totals.imported} products.`, 'success');
+        this.ledgerPage = 1;
+        await this.renderLedger(pane);
+      }
+    });
+  }
+
   async renderLedger(pane) {
     const products = await db.products.toArray();
-    
+    // Page before the per-row stock lookups: each one is another Dexie read.
+    const view = paginate(products, this.ledgerPage);
+    this.ledgerPage = view.page;
+
     pane.innerHTML = `
       <div class="control-bar">
         <input type="text" id="ledg-search" placeholder="Search ledger by SKU or name...">
         <button class="primary-btn" id="ledg-add-prod-btn">Add Product</button>
+        <button class="sec-btn" id="ledg-import-btn">📥 Import CSV / Excel</button>
         <button class="sec-btn" id="ledg-autofill-btn">✨ Auto-fill Images</button>
         <button class="sec-btn" id="ledg-adjust-btn">Manual Adjustment</button>
+        <input type="file" id="ledg-import-file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" style="display:none;">
       </div>
+      <div id="ledg-import-report"></div>
 
       <div class="table-wrapper">
         <table class="pos-table">
@@ -89,12 +226,13 @@ export class InventoryView {
           </tbody>
         </table>
       </div>
+      <div id="ledg-pager"></div>
     `;
 
     const tbody = document.getElementById('ledg-table-body');
     const categories = new Map((await db.categories.toArray()).map(c => [c.id, c.name]));
 
-    for (const prod of products) {
+    for (const prod of view.rows) {
       const stock = await getStockOnHand(prod.id, state.currentBranch.id);
       const tr = document.createElement('tr');
       tr.innerHTML = `
@@ -123,6 +261,16 @@ export class InventoryView {
       tbody.appendChild(tr);
     }
 
+    const pager = document.getElementById('ledg-pager');
+    if (pager) {
+      pager.innerHTML = pagerHtml('ledg-pager-strip', view);
+      bindPager('ledg-pager-strip', view, (next) => {
+        this.ledgerPage = next;
+        this.renderLedger(pane);
+      });
+    }
+
+    this.bindImportEvents(pane);
     this.bindProductEditorEvents(pane);
 
     // Manual adjustment modal event trigger (simulation)

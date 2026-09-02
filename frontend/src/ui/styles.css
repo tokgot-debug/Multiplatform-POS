@@ -391,6 +391,75 @@ body.dark-mode {
   border: 1px solid rgba(255,255,255,0.05);
 }
 
+/* Sidebar accordion. One group open at a time, driven from React. */
+.nav-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.nav-group-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 10px;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-family: var(--font-main);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  transition: background 0.2s, color 0.2s;
+}
+
+.nav-group-toggle:hover,
+.nav-group.open .nav-group-toggle {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary);
+}
+
+.nav-group-toggle:focus-visible {
+  outline: 2px solid var(--accent-cyan);
+  outline-offset: -2px;
+}
+
+.nav-group-chevron {
+  font-size: 15px;
+  line-height: 1;
+  transition: transform 0.2s ease;
+}
+
+.nav-group.open .nav-group-chevron {
+  transform: rotate(90deg);
+}
+
+.nav-group-items {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 2px 0 6px 10px;
+  /* The rail reads as "these belong to the heading above". */
+  margin-left: 8px;
+  border-left: 1px solid var(--border-color);
+}
+
+/* An author `display` outranks the user agent's [hidden] rule, so without this
+   every group renders expanded and the accordion is decorative. */
+.nav-group-items[hidden] {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-group-chevron {
+    transition: none;
+  }
+}
+
 .bezel-logo {
   position: absolute;
   bottom: 15px;
@@ -411,6 +480,10 @@ body.dark-mode {
   border: 1px solid rgba(200,130,42,0.35);
   border-radius: 18px;
   width: 90%;
+  /* A 90% block inside .tablet-screen puts the whole 10% remainder on the
+     right. Its usual parent is a centring flex container, so this only ever
+     showed up inside the tablet mock-up. */
+  margin-inline: auto;
   max-width: 500px;
   max-height: 90vh;
   overflow-y: auto;
@@ -644,7 +717,9 @@ body.dark-mode {
 .cat-filters {
   display: flex;
   gap: 8px;
-  overflow-x: auto;
+  /* Wrap rather than scroll: a horizontally scrolling strip clipped the last
+     chip mid-word with no affordance that anything was hidden. */
+  flex-wrap: wrap;
   padding-bottom: 4px;
 }
 
@@ -690,11 +765,25 @@ body.dark-mode {
   padding: 16px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  /* Not space-between: that spreads leftover height between the rows, so a
+     short card pushed its footer to a different height than a tall one.
+     .card-tab-content carries flex:1 and does the same job predictably. */
+  /* The grid row was collapsing the card below its own content, which
+     overflow:hidden then silently clipped - the picture survived and the name,
+     price and stock were cut off. Reserve the height the content needs. */
+  min-height: 345px;
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
+}
+
+/* Grid rows stretch every card to the tallest. Without flex-shrink:0 the
+   picture is the thing that gives, collapsing to a sliver on busier cards.
+   Basis stays auto so the inline height governs and the text below it is not
+   pushed out of the card's overflow:hidden. */
+.card-media {
+  flex-shrink: 0;
 }
 
 .product-card:hover {
@@ -760,6 +849,9 @@ body.dark-mode {
   font-weight: 600;
   margin-bottom: 6px;
   line-height: 1.3;
+  /* Reserve two lines so a one-line name and a two-line name put their SKU,
+     tabs and price at the same height across a row. */
+  min-height: 2.6em;
 }
 
 .product-card .sku {
@@ -772,6 +864,8 @@ body.dark-mode {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  /* Pinned to the bottom whatever the card above it does. */
+  margin-top: auto;
 }
 
 .product-card .price {
@@ -1785,6 +1879,10 @@ body.dark-mode {
   border-radius: 10px;
   border: 1px solid rgba(255,255,255,0.07);
   background: var(--surface);
+  /* .pane-content is a flex column, so without this the table is squeezed to
+     fit and scrolls inside its own shrunken box - the rows below the fold
+     become unreachable. Keep full height and let the pane scroll instead. */
+  flex-shrink: 0;
 }
 
 .pos-table {

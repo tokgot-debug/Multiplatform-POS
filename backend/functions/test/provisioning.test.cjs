@@ -68,23 +68,12 @@ test("opening stock is never negative", () => {
   assert.equal(mapped.stockBalances[0].qty, 0);
 });
 
-test("staff roles map to the codes the backend authorises", () => {
-  const mapped = mapSeed(seed());
-  assert.deepEqual(mapped.staff.map((s) => s.role), ["owner", "cashier"]);
-});
-
-test("an unknown role is rejected rather than silently dropped", () => {
-  assert.throws(
-    () => mapSeed(seed({ users: [{ id: "u1", name: "X", pin: "1111", role: "Wizard" }] })),
-    /Unknown staff role/,
-  );
-});
-
-test("a non four-digit PIN is rejected", () => {
-  assert.throws(
-    () => mapSeed(seed({ users: [{ id: "u1", name: "X", pin: "12", role: "Cashier" }] })),
-    /four-digit PIN/,
-  );
+test("provisioning seeds no staff and no credentials", () => {
+  // Identities come from Firebase Auth via bootstrapOwner and createStaffUser.
+  // The seed used to carry a PIN per user, which shipped in the app bundle.
+  const mapped = mapSeed(seed({ users: [{ id: "u1", name: "X", pin: "1111", role: "Owner" }] }));
+  assert.equal("staff" in mapped, false);
+  assert.equal(JSON.stringify(mapped).includes("1111"), false);
 });
 
 test("an unsupported tax code is rejected", () => {

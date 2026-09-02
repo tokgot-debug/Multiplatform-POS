@@ -23,6 +23,12 @@ service cloud.firestore {
         && request.auth.token.staff_role in ['owner', 'store_manager'];
     }
 
+    // Modules the sidebar hides from most roles. Hiding a button is not access
+    // control, so the same restriction is enforced on the data itself.
+    function readsFinancials() {
+      return managesTenant() && canReadTenantDocument();
+    }
+
     function validSettingsUpdate(tenantId) {
       return resource.data.tenantId == tenantId
         && request.resource.data.tenantId == tenantId
@@ -77,8 +83,12 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Staff profiles carry names, emails and roles for the whole business.
+    // Only administrators need the roster; identities are written exclusively
+    // by createStaffUser and setStaffActive.
     match /staff/{documentId} {
-      allow read: if canReadTenantDocument();
+      allow read: if readsFinancials()
+        || (canReadTenantDocument() && resource.data.id == request.auth.token.staff_id);
       allow write: if false;
     }
 
@@ -127,6 +137,13 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // The till watches its own pending push for the STK result. Writes stay
+    // server-only: this document is what says a customer has actually paid.
+    match /mpesa_payments/{documentId} {
+      allow read: if canReadTenantDocument();
+      allow write: if false;
+    }
+
     match /shifts/{documentId} {
       allow read: if canReadTenantDocument();
       allow write: if false;
@@ -137,8 +154,10 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Audit logs record who did what across the whole business, and the
+    // sidebar already restricts them to owners and managers.
     match /audit_logs/{documentId} {
-      allow read: if canReadTenantDocument();
+      allow read: if readsFinancials();
       allow write: if false;
     }
 

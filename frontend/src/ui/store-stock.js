@@ -1,11 +1,13 @@
 import { db } from '../db/schema';
 import { state, showNotification } from '../context';
 import { getStoreStock, getHouseStock, logAuditEvent } from '../db/index';
+import { bindPager, pagerHtml, paginate } from '../services/paginate';
 
 export class StoreStockView {
   constructor(container) {
     this.container = container;
     this.activeTab = 'inventory'; // 'inventory' | 'requests'
+    this.page = 1;
     window.storeStockViewInstance = this;
   }
 
@@ -51,6 +53,7 @@ export class StoreStockView {
               </tbody>
             </table>
           </div>
+          <div id="store-pager"></div>
         </div>
 
         <!-- Pending Requests View -->
@@ -161,7 +164,10 @@ export class StoreStockView {
       this.load();
     });
 
-    document.getElementById('store-search').addEventListener('input', () => this.populateData());
+    document.getElementById('store-search').addEventListener('input', () => {
+      this.page = 1;
+      this.populateData();
+    });
 
     this.bindEvents();
   }
@@ -475,12 +481,19 @@ export class StoreStockView {
     
     const products = await db.products.where('is_service').equals(0).toArray();
     const categories = new Map((await db.categories.toArray()).map(c => [c.id, c.name]));
-    
+
+    const matches = search
+      ? products.filter(p => p.name.toLowerCase().includes(search))
+      : products;
+
+    // Page before the stock lookups, not after: each row costs two more Dexie
+    // reads, so this is 25 of them instead of one per product in the catalogue.
+    const view = paginate(matches, this.page);
+    this.page = view.page;
+
     const rowsHtml = [];
 
-    for (const p of products) {
-      if (search && !p.name.toLowerCase().includes(search)) continue;
-
+    for (const p of view.rows) {
       const storeStock = await getStoreStock(p.id, state.currentBranch?.id);
       const houseStock = await getHouseStock(p.id, state.currentBranch?.id);
       
@@ -516,6 +529,15 @@ export class StoreStockView {
       tbody.innerHTML = `<tr><td colspan="6" style="padding: 24px; text-align: center; color: var(--text-muted);">No products found.</td></tr>`;
     } else {
       tbody.innerHTML = rowsHtml.join('');
+    }
+
+    const pager = document.getElementById('store-pager');
+    if (pager) {
+      pager.innerHTML = pagerHtml('store-pager-strip', view);
+      bindPager('store-pager-strip', view, (next) => {
+        this.page = next;
+        this.populateInventory();
+      });
     }
   }
 

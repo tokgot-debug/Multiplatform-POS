@@ -1,6 +1,8 @@
 import { randomUUID } from "node:crypto";
 
 import { Timestamp } from "firebase-admin/firestore";
+
+import { needsProviderIntent } from "./constants";
 import type {
   BaseSaleContext,
   ParsedSaleInput,
@@ -84,9 +86,10 @@ export function buildSaleRecords({
 
   let digitalPaymentIndex = 0;
   const payments = input.payments.map((payment, index) => {
-    const intent = payment.method === "cash"
-      ? undefined
-      : dependencies.paymentIntentDocuments[digitalPaymentIndex++];
+    const fromProvider = needsProviderIntent(payment.method);
+    const intent = fromProvider
+      ? dependencies.paymentIntentDocuments[digitalPaymentIndex++]
+      : undefined;
     return {
       id: paymentIds[index],
       tenantId: input.tenantId,
@@ -94,9 +97,9 @@ export function buildSaleRecords({
       method: payment.method,
       amountMinor: payment.amountMinor,
       reference: payment.reference,
-      providerTransactionId: payment.method === "cash"
-        ? null
-        : String(intent?.data()?.providerTransactionId ?? ""),
+      providerTransactionId: fromProvider
+        ? String(intent?.data()?.providerTransactionId ?? "")
+        : null,
       status: "completed",
       paidAt: timestamp,
       createdAt: timestamp,

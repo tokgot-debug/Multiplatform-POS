@@ -17,10 +17,9 @@ export function toMinor(amount) {
 /** Local tender codes -> the methods the backend will accept. */
 const PAYMENT_METHOD_MAP = {
   CASH: 'cash',
+  CREDIT: 'credit',
   MPESA: 'mpesa',
   CARD: 'card',
-  PAYSTACK: 'card',
-  PAYSTACK_CARD: 'card',
   AIRTEL: 'airtel_money',
   AIRTEL_MONEY: 'airtel_money',
   BANK: 'bank_transfer',
