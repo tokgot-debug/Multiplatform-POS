@@ -1,9 +1,37 @@
 node_modules/
 dist/
+.next/
+out/
 .DS_Store
 .env
 .env.*
+!.env.example
+!**/.env.example
 
+*.tsbuildinfo
+
+# Firebase local/deploy state
 .firebase/
-firebase-debug.log
+.emulator/
+.firebaserc
+firebase-debug.log*
+firestore-debug.log*
+ui-debug.log*
 __pycache__/
+
+# Cloud Functions build and test output
+backend/functions/lib/
+backend/functions/coverage/
+
+# Service-account credentials are never repository files
+*serviceAccount*.json
+*service-account*.json
+*adminsdk*.json
+*-firebase-adminsdk-*.json
+sa-key.json
+
+# Playwright visual harness output (baselines ARE committed)
+frontend/visual/report/
+frontend/test-results/
+frontend/visual/**/*-actual.png
+frontend/visual/**/*-diff.png

@@ -1,19 +1,20 @@
 {
-  "name": "kra-etims-pos",
+  "name": "vanbransa-pos-workspace",
   "private": true,
   "version": "1.0.0",
-  "type": "module",
+  "comment": "Task runner only. frontend and backend/functions are independent deployables and own their dependencies; they share none, so there is nothing to hoist.",
   "scripts": {
-    "dev": "vite --port 3000 --host 127.0.0.1",
-    "build": "vite build",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "chart.js": "^4.4.3",
-    "dexie": "^4.0.8",
-    "lucide": "^0.395.0"
-  },
-  "devDependencies": {
-    "vite": "^5.2.11"
+    "setup": "npm --prefix frontend install && npm --prefix backend/functions install",
+    "dev": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "preview": "npm --prefix frontend run preview",
+    "test": "npm --prefix frontend test && npm --prefix backend/functions test",
+    "test:frontend": "npm --prefix frontend test",
+    "test:backend": "npm --prefix backend/functions test",
+    "smoke": "node scripts/smoke-test.mjs",
+    "emulators": "node scripts/start-emulators.cjs",
+    "emulators:doctor": "node scripts/start-emulators.cjs --doctor",
+    "test:emulator-runner": "node --test scripts/test/emulator-runner.test.cjs",
+    "deploy": "npm run build && firebase deploy"
   }
 }

@@ -1,0 +1,29 @@
+{
+  "name": "vanbransa-pos-frontend",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "next dev -p 3000",
+    "build": "next build",
+    "start": "next start -p 3000",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test \"src/**/*.test.mjs\"",
+    "visual": "npm run build && playwright test",
+    "visual:update": "npm run build && playwright test --update-snapshots",
+    "visual:report": "playwright show-report visual/report"
+  },
+  "dependencies": {
+    "dexie": "^4.0.8",
+    "firebase": "^12.18.0",
+    "next": "16.3.2",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1",
+    "@types/node": "^22.10.2",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.5",
+    "typescript": "^5.9.3"
+  }
+}

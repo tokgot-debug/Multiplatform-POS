@@ -1,0 +1,176 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function hasTenantClaim(tenantId) {
+      return signedIn()
+        && request.auth.token.tenant_id is string
+        && request.auth.token.tenant_id == tenantId;
+    }
+
+    function canReadTenantDocument() {
+      return resource.data.tenantId is string
+        && hasTenantClaim(resource.data.tenantId);
+    }
+
+    function managesTenant() {
+      return signedIn()
+        && request.auth.token.staff_role is string
+        && request.auth.token.staff_role in ['owner', 'store_manager'];
+    }
+
+    // Modules the sidebar hides from most roles. Hiding a button is not access
+    // control, so the same restriction is enforced on the data itself.
+    function readsFinancials() {
+      return managesTenant() && canReadTenantDocument();
+    }
+
+    function validSettingsUpdate(tenantId) {
+      return resource.data.tenantId == tenantId
+        && request.resource.data.tenantId == tenantId
+        && hasTenantClaim(tenantId)
+        && managesTenant()
+        && request.auth.token.staff_id is string
+        && request.resource.data.updatedByStaffId == request.auth.token.staff_id
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'establishmentName',
+          'receiptFooter',
+          'locale',
+          'timezone',
+          'cashEnabled',
+          'lowStockThresholdQty',
+          'acceptedPaymentMethods',
+          'updatedAt',
+          'updatedByStaffId'
+        ])
+        && request.resource.data.establishmentName is string
+        && request.resource.data.establishmentName.size() > 0
+        && request.resource.data.establishmentName.size() <= 120
+        && request.resource.data.receiptFooter is string
+        && request.resource.data.receiptFooter.size() <= 500
+        && request.resource.data.locale is string
+        && request.resource.data.timezone is string
+        && request.resource.data.cashEnabled is bool
+        && request.resource.data.lowStockThresholdQty is int
+        && request.resource.data.lowStockThresholdQty >= 0
+        && request.resource.data.acceptedPaymentMethods is list
+        && request.resource.data.acceptedPaymentMethods.size() > 0
+        && request.resource.data.acceptedPaymentMethods.hasOnly([
+          'cash', 'mpesa', 'card', 'airtel_money', 'bank_transfer'
+        ]);
+    }
+
+    // Tenant creation and claim assignment are Admin-only operations.
+    match /tenants/{tenantId} {
+      allow read: if hasTenantClaim(tenantId);
+      allow write: if false;
+    }
+
+    // Browser reads are tenant-scoped. Queries must include tenantId because
+    // Firestore security rules are not result filters.
+    match /branches/{documentId} {
+      allow read: if canReadTenantDocument();
+      allow write: if false;
+    }
+
+    match /devices/{documentId} {
+      allow read: if canReadTenantDocument();
+      allow write: if false;
+    }
+
+    // Staff profiles carry names, emails and roles for the whole business.
+    // Only administrators need the roster; identities are written exclusively
+    // by createStaffUser and setStaffActive.
+    match /staff/{documentId} {
+      allow read: if readsFinancials()
+        || (canReadTenantDocument() && resource.data.id == request.auth.token.staff_id);
+      allow write: if false;
+    }
+
+    match /categories/{documentId} {
+      allow read: if canReadTenantDocument();
+      allow write: if false;
+    }
+
+    match /products/{documentId} {
+      allow read: if canReadTenantDocument();
+      allow write: if false;
+    }
+
+    match /barcodes/{documentId} {
+      allow read: if canReadTenantDocument();
+      allow write: if false;
+    }
+
+    match /customers/{documentId} {
+      allow read: if canReadTenantDocument();
+      allow write: if false;
+    }
+
+    match /suppliers/{documentId} {
+      allow read: if canReadTenantDocument();
+      allow write: if false;
+    }
+
+    match /stock_balances/{documentId} {
+      allow read: if canReadTenantDocument();
+      allow write: if false;
+    }
+
+    match /sales/{documentId} {
+      allow read: if canReadTenantDocument();
+      allow write: if false;
+    }
+
+    match /sale_lines/{documentId} {
+      allow read: if canReadTenantDocument();
+      allow write: if false;
+    }
+
+    match /payments/{documentId} {
+      allow read: if canReadTenantDocument();
+      allow write: if false;
+    }
+
+    // The till watches its own pending push for the STK result. Writes stay
+    // server-only: this document is what says a customer has actually paid.
+    match /mpesa_payments/{documentId} {
+      allow read: if canReadTenantDocument();
+      allow write: if false;
+    }
+
+    match /shifts/{documentId} {
+      allow read: if canReadTenantDocument();
+      allow write: if false;
+    }
+
+    match /stock_movements/{documentId} {
+      allow read: if canReadTenantDocument();
+      allow write: if false;
+    }
+
+    // Audit logs record who did what across the whole business, and the
+    // sidebar already restricts them to owners and managers.
+    match /audit_logs/{documentId} {
+      allow read: if readsFinancials();
+      allow write: if false;
+    }
+
+    match /tenant_settings/{tenantId} {
+      allow read: if hasTenantClaim(tenantId);
+      allow update: if validSettingsUpdate(tenantId);
+      allow create, delete: if false;
+    }
+
+    // PIN hashes, throttling state, verified payment intents, counters, and all
+    // unknown documents are server-only.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
