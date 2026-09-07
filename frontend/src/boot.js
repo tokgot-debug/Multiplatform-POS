@@ -15,9 +15,9 @@ import { state, showNotification } from './context';
 // Product imagery is repaired on every boot because earlier builds seeded
 // records without it.
 const PRODUCT_IMAGES = {
-  'prod-tusker-bottle': '/ai_images/beer_glass.jpg',
+  'prod-tusker-bottle': '/ai_images/tusker_lager.jpg',
   'prod-guinness': '/ai_images/stout_glass.jpg',
-  'prod-whitecap': '/ai_images/beer_glass.jpg',
+  'prod-whitecap': '/ai_images/whitecap_lager.jpg',
   'prod-savanna': '/ai_images/cider_glass.jpg',
   'prod-smirnoff-tot': '/ai_images/vodka_glass.jpg',
   'prod-jameson-tot': '/ai_images/whiskey_glass.jpg',
@@ -31,6 +31,7 @@ const PRODUCT_IMAGES = {
   'prod-chicken-chips': '/ai_images/grilled_chicken.jpg',
   'prod-pilau': '/ai_images/pilau_rice.jpg',
   'prod-ugali-stew': '/ai_images/ugali_nyama.jpg',
+  'prod-chapati-beans': '/ai_images/chapati_beans.jpg',
   'prod-samosa': '/ai_images/beef_samosas.jpg',
   'prod-table-service': '/ai_images/vip_service.jpg',
   'prod-corkage': '/ai_images/corkage.jpg',
@@ -80,10 +81,16 @@ async function runBoot(onSyncStatus) {
     const products = await db.products.toArray();
     for (const product of products) {
       let changed = false;
+      const lowerName = (product.name || '').toLowerCase();
       const image = PRODUCT_IMAGES[product.id];
       if (image && product.image_data !== image) {
         product.image_data = image;
         changed = true;
+      } else if (lowerName.includes('chapati') || (lowerName.includes('bean') && !lowerName.includes('coffee'))) {
+        if (product.image_data !== '/ai_images/chapati_beans.jpg') {
+          product.image_data = '/ai_images/chapati_beans.jpg';
+          changed = true;
+        }
       }
       if (product.id === 'prod-table-service' && product.name !== 'VIP Service Charge') {
         product.name = 'VIP Service Charge';

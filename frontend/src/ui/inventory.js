@@ -314,24 +314,28 @@ export class InventoryView {
       btn.innerText = 'Applying AI Images...';
       
       const aiImageMap = [
+        { keywords: ['chapati beans', 'chapati & beans', 'chapati and beans', 'beans & chapati'], url: '/ai_images/chapati_beans.jpg' },
+        { keywords: ['chapati'], exclude: ['rolling pin', 'pin'], url: '/ai_images/chapati_beans.jpg' },
+        { keywords: ['beans', 'maharagwe', 'madondo'], exclude: ['coffee', 'espresso', 'jelly', 'cocoa', 'vanilla'], url: '/ai_images/chapati_beans.jpg' },
         { keywords: ['savanna', 'cider'], url: '/ai_images/cider_glass.jpg' },
         { keywords: ['guinness', 'stout'], url: '/ai_images/stout_glass.jpg' },
-        { keywords: ['tusker', 'white cap', 'whitecap', 'pilsner'], url: '/ai_images/beer_glass.jpg' },
-        { keywords: ['beer', 'lager', 'senator'], url: '/ai_images/beer_bottle.jpg' },
+        { keywords: ['tusker'], url: '/ai_images/tusker_lager.jpg' },
+        { keywords: ['white cap', 'whitecap'], url: '/ai_images/whitecap_lager.jpg' },
+        { keywords: ['beer', 'lager', 'senator', 'pilsner'], exclude: ['glass', 'mug'], url: '/ai_images/beer_glass.jpg' },
         { keywords: ['smirnoff', 'vodka'], url: '/ai_images/vodka_glass.jpg' },
-        { keywords: ['jameson', 'whiskey'], url: '/ai_images/whiskey_glass.jpg' },
-        { keywords: ['konyagi', 'gin'], url: '/ai_images/gin_glass.jpg' },
-        { keywords: ['wine', 'red wine'], url: '/ai_images/red_wine_glass.jpg' },
+        { keywords: ['jameson', 'whiskey', 'whisky', 'johnnie', 'jack daniel', 'balvenie', 'glenfiddich'], url: '/ai_images/whiskey_glass.jpg' },
+        { keywords: ['konyagi', 'gin', 'gordon', 'tanqueray', 'gilbeys'], exclude: ['ginger', 'charging'], url: '/ai_images/gin_glass.jpg' },
+        { keywords: ['wine', 'red wine'], exclude: ['glasses', 'glassware'], url: '/ai_images/red_wine_glass.jpg' },
         { keywords: ['coca-cola', 'coca cola', 'coke'], url: '/ai_images/coke_bottle.png' },
-        { keywords: ['fanta'], url: '/ai_images/fanta_glass.jpg' },
-        { keywords: ['juice'], url: '/ai_images/fresh_juice.jpg' },
-        { keywords: ['mineral water', 'water', 'aqua'], url: '/ai_images/mineral_water.jpg' },
-        { keywords: ['nyama choma', 'roasted meat', 'goat ribs', 'pork ribs'], url: '/ai_images/nyama_choma.jpg' },
-        { keywords: ['chicken', 'grilled chicken'], url: '/ai_images/grilled_chicken.jpg' },
-        { keywords: ['pilau', 'rice', 'biryani'], url: '/ai_images/pilau_rice.jpg' },
-        { keywords: ['fish', 'tilapia', 'omena', 'fillet'], url: '/ai_images/fish_chips.jpg' },
-        { keywords: ['ugali', 'beef stew', 'stew', 'beans'], url: '/ai_images/ugali_nyama.jpg' },
-        { keywords: ['samosa'], url: '/ai_images/beef_samosas.jpg' }
+        { keywords: ['fanta', 'sprite', 'stoney', 'krest'], url: '/ai_images/fanta_glass.jpg' },
+        { keywords: ['fresh juice', 'juice'], exclude: ['vape', 'e-liquid', 'vaping'], url: '/ai_images/fresh_juice.jpg' },
+        { keywords: ['mineral water', 'water', 'aqua', 'dasani'], exclude: ['watermelon', 'tonic', 'watercress'], url: '/ai_images/mineral_water.jpg' },
+        { keywords: ['nyama choma', 'choma', 'roasted meat', 'goat ribs', 'pork ribs', 'mbuzi'], url: '/ai_images/nyama_choma.jpg' },
+        { keywords: ['chicken', 'kuku', 'grilled chicken', 'wings'], url: '/ai_images/grilled_chicken.jpg' },
+        { keywords: ['pilau', 'biryani', 'fried rice', 'rice'], exclude: ['rolling pin', 'price'], url: '/ai_images/pilau_rice.jpg' },
+        { keywords: ['fish', 'tilapia', 'omena', 'fillet', 'samaki'], exclude: ['safisha'], url: '/ai_images/fish_chips.jpg' },
+        { keywords: ['ugali', 'beef stew', 'stew', 'sukuma', 'managu'], exclude: ['beans'], url: '/ai_images/ugali_nyama.jpg' },
+        { keywords: ['samosa', 'sambusa'], url: '/ai_images/beef_samosas.jpg' }
       ];
 
 
@@ -346,9 +350,12 @@ export class InventoryView {
           const lowerName = prod.name.toLowerCase();
           
           // Find matching AI image
-          const match = aiImageMap.find(mapping => 
-            mapping.keywords.some(kw => lowerName.includes(kw))
-          );
+          const match = aiImageMap.find(mapping => {
+            const matched = mapping.keywords.some(kw => lowerName.includes(kw));
+            if (!matched) return false;
+            if (mapping.exclude && mapping.exclude.some(ex => lowerName.includes(ex))) return false;
+            return true;
+          });
           
           let imgUrl = null;
           

@@ -58,7 +58,7 @@ export const products = [
       tax_code: 'A', item_cls_cd: '50202306', item_ty_cd: '1',
       pkg_unit_cd: 'BO', qty_unit_cd: 'U', origin_country: 'KE',
       sell_price: 250.00, cost_price: 160.00,
-      image_data: '/ai_images/beer_glass.jpg',
+      image_data: '/ai_images/tusker_lager.jpg',
       etims_registered_at: new Date().toISOString(), is_active: 1, version: 1
     },
     {
@@ -78,7 +78,7 @@ export const products = [
       tax_code: 'A', item_cls_cd: '50202306', item_ty_cd: '1',
       pkg_unit_cd: 'BO', qty_unit_cd: 'U', origin_country: 'KE',
       sell_price: 250.00, cost_price: 155.00,
-      image_data: '/ai_images/beer_glass.jpg',
+      image_data: '/ai_images/whitecap_lager.jpg',
       etims_registered_at: new Date().toISOString(), is_active: 1, version: 1
     },
     {
@@ -215,6 +215,16 @@ export const products = [
       pkg_unit_cd: 'PK', qty_unit_cd: 'U', origin_country: 'KE',
       sell_price: 300.00, cost_price: 160.00,
       image_data: '/ai_images/ugali_nyama.jpg',
+      etims_registered_at: new Date().toISOString(), is_active: 1, version: 1
+    },
+    {
+      id: 'prod-chapati-beans',
+      tenant_id: TENANT_ID, sku: 'FOD-CHP-06', name: 'Chapati & Beans',
+      category_id: 'cat-food', uom: 'PLATE', is_batch_tracked: 0, is_service: 0,
+      tax_code: 'A', item_cls_cd: '50101700', item_ty_cd: '1',
+      pkg_unit_cd: 'PK', qty_unit_cd: 'U', origin_country: 'KE',
+      sell_price: 250.00, cost_price: 120.00,
+      image_data: '/ai_images/chapati_beans.jpg',
       etims_registered_at: new Date().toISOString(), is_active: 1, version: 1
     },
     {
