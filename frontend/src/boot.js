@@ -86,6 +86,21 @@ async function runBoot(onSyncStatus) {
       if (image && product.image_data !== image) {
         product.image_data = image;
         changed = true;
+      } else if (lowerName.includes('william')) {
+        if (product.image_data !== '/ai_images/william_lawson.jpg') {
+          product.image_data = '/ai_images/william_lawson.jpg';
+          changed = true;
+        }
+      } else if (lowerName.includes('jameson')) {
+        if (product.image_data !== '/ai_images/jameson_bottle.jpg') {
+          product.image_data = '/ai_images/jameson_bottle.jpg';
+          changed = true;
+        }
+      } else if (lowerName.includes('johnnie walker') || lowerName.includes('black label') || lowerName.includes('red label')) {
+        if (product.image_data !== '/ai_images/johnnie_walker.jpg') {
+          product.image_data = '/ai_images/johnnie_walker.jpg';
+          changed = true;
+        }
       } else if (lowerName.includes('chapati') || (lowerName.includes('bean') && !lowerName.includes('coffee'))) {
         if (product.image_data !== '/ai_images/chapati_beans.jpg') {
           product.image_data = '/ai_images/chapati_beans.jpg';
