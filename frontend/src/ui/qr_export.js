@@ -158,6 +158,7 @@ export class QrToolsView {
     const sizeEl = document.getElementById('qr-size-sel');
     const encodedUrl = (urlEl && urlEl.value.trim()) || defaultMenuUrl();
     if (urlEl) localStorage.setItem('pos_menu_url', encodedUrl);
+    const size = parseInt(sizeEl ? sizeEl.value : '220');
 
     const renderQR = () => {
       const wrap = document.getElementById('qr-actual');
@@ -187,10 +188,18 @@ export class QrToolsView {
 
   downloadQR() {
     const img = document.querySelector('#qr-actual img');
-    if (!img) { showNotification('QR not ready yet — wait a moment.', 'error'); return; }
+    const canvas = document.querySelector('#qr-actual canvas');
+    let src = '';
+    if (img && img.src) {
+      src = img.src;
+    } else if (canvas) {
+      try { src = canvas.toDataURL('image/png'); } catch (e) {}
+    }
+
+    if (!src) { showNotification('QR not ready yet — wait a moment.', 'error'); return; }
     const a = document.createElement('a');
     a.download = 'vanbransa-menu-qr.png';
-    a.href = img.src;
+    a.href = src;
     a.click();
     showNotification('QR Code downloaded!', 'success');
   }
