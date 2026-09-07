@@ -31,7 +31,10 @@ const PRODUCT_IMAGES = {
   'prod-chicken-chips': '/ai_images/grilled_chicken.jpg',
   'prod-pilau': '/ai_images/pilau_rice.jpg',
   'prod-ugali-stew': '/ai_images/ugali_nyama.jpg',
-  'prod-samosa': '/ai_images/beef_samosas.jpg'
+  'prod-samosa': '/ai_images/beef_samosas.jpg',
+  'prod-table-service': '/ai_images/vip_service.jpg',
+  'prod-corkage': '/ai_images/corkage.jpg',
+  'prod-staff-discount': '/ai_images/discount_badge.jpg'
 };
 
 /** randomUUID is absent over plain HTTP on a LAN preview. */
@@ -76,11 +79,46 @@ async function runBoot(onSyncStatus) {
   try {
     const products = await db.products.toArray();
     for (const product of products) {
+      let changed = false;
       const image = PRODUCT_IMAGES[product.id];
       if (image && product.image_data !== image) {
         product.image_data = image;
+        changed = true;
+      }
+      if (product.id === 'prod-table-service' && product.name !== 'VIP Service Charge') {
+        product.name = 'VIP Service Charge';
+        changed = true;
+      }
+      if (changed) {
         await db.products.put(product);
       }
+    }
+
+    // Ensure staff discount product exists if missing
+    const hasStaffDiscount = products.some(p => p.id === 'prod-staff-discount');
+    if (!hasStaffDiscount && state.currentTenant) {
+      await db.products.put({
+        id: 'prod-staff-discount',
+        tenant_id: state.currentTenant.id,
+        sku: 'SRV-STF-03',
+        name: 'Staff 20% Discount',
+        category_id: 'cat-services',
+        uom: 'DISCOUNT',
+        is_batch_tracked: 0,
+        is_service: 1,
+        tax_code: 'E',
+        item_cls_cd: '73151600',
+        item_ty_cd: '2',
+        pkg_unit_cd: 'EA',
+        qty_unit_cd: 'U',
+        origin_country: 'KE',
+        sell_price: 0.00,
+        cost_price: 0.00,
+        image_data: '/ai_images/discount_badge.jpg',
+        etims_registered_at: new Date().toISOString(),
+        is_active: 1,
+        version: 1
+      });
     }
   } catch (err) {
     console.warn('Product image migration skipped:', err);
