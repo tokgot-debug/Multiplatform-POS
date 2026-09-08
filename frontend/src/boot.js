@@ -96,9 +96,24 @@ async function runBoot(onSyncStatus) {
           product.image_data = '/ai_images/jameson_bottle.jpg';
           changed = true;
         }
+      } else if (lowerName.includes('jw blue') || lowerName.includes('blue label')) {
+        if (product.image_data !== '/ai_images/blue_label.jpg') {
+          product.image_data = '/ai_images/blue_label.jpg';
+          changed = true;
+        }
       } else if (lowerName.includes('johnnie walker') || lowerName.includes('black label') || lowerName.includes('red label')) {
         if (product.image_data !== '/ai_images/johnnie_walker.jpg') {
           product.image_data = '/ai_images/johnnie_walker.jpg';
+          changed = true;
+        }
+      } else if (lowerName.includes('rose') || lowerName.includes('rosé') || lowerName.includes('allee bleue')) {
+        if (product.image_data !== '/ai_images/rose_wine.jpg') {
+          product.image_data = '/ai_images/rose_wine.jpg';
+          changed = true;
+        }
+      } else if (lowerName.includes('syrah') || lowerName.includes('primitivo') || lowerName.includes('cabernet') || lowerName.includes('merlot')) {
+        if (product.image_data !== '/ai_images/red_wine_bottle.jpg') {
+          product.image_data = '/ai_images/red_wine_bottle.jpg';
           changed = true;
         }
       } else if (lowerName.includes('chapati') || (lowerName.includes('bean') && !lowerName.includes('coffee'))) {
